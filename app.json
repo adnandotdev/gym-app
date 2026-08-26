@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "BaseApp",
-    "slug": "BaseApp",
+    "name": "MuscleMap",
+    "slug": "musclemap",
     "version": "1.0.0",
+    "description": "Your personal gym companion — visualize muscles, plan workouts, track progress.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -10,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F7F3EA"
     },
     "ios": {
       "supportsTablet": true
@@ -18,12 +19,15 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F7F3EA"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
