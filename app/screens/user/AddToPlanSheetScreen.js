@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -8,6 +8,7 @@ import Button from '../../components/Button';
 import MotionPressable from '../../components/MotionPressable';
 import { useWorkoutPlan } from '../../context/WorkoutPlanContext';
 import { colors, componentSizes, radius, spacing, typography } from '../../theme/colors';
+import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -22,6 +23,11 @@ const triggerHaptic = async (callback) => {
 export default function AddToPlanSheetScreen({ route, navigation }) {
   const { exercise } = route.params;
   const { addExercise } = useWorkoutPlan();
+  const demonstration = resolveExerciseDemonstration(
+    exercise.exerciseVariantId || exercise.id,
+    exercise.exerciseFamilyId,
+    'male',
+  );
   const [selectedDay, setSelectedDay] = useState(null);
   const [addingDay, setAddingDay] = useState(null);
 
@@ -89,6 +95,23 @@ export default function AddToPlanSheetScreen({ route, navigation }) {
           <Ionicons name="close" size={22} color={colors.textPrimary} />
         </MotionPressable>
       </View>
+
+      {demonstration && (
+        <View style={styles.exercisePreview}>
+          <Image
+            source={demonstration.start}
+            style={styles.exercisePreviewImage}
+            resizeMode="cover"
+            accessible
+            accessibilityLabel={`${exercise.name} male exercise demonstration`}
+          />
+          <View style={styles.exercisePreviewCopy}>
+            <Text style={styles.exercisePreviewEyebrow}>Selected variation</Text>
+            <Text style={styles.exercisePreviewTitle} numberOfLines={2}>{exercise.name}</Text>
+            <Text style={styles.exercisePreviewMeta}>{exercise.equipment}</Text>
+          </View>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.dayList} showsVerticalScrollIndicator={false}>
         {DAYS.map((day) => {
@@ -163,6 +186,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.control,
     backgroundColor: colors.surfaceWarm,
+  },
+  exercisePreview: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginHorizontal: spacing.screen,
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.card,
+    backgroundColor: colors.surfaceWarm,
+  },
+  exercisePreviewImage: {
+    width: 112,
+    aspectRatio: 4 / 3,
+    borderRadius: radius.control,
+    backgroundColor: colors.surface,
+  },
+  exercisePreviewCopy: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  exercisePreviewEyebrow: {
+    ...typography.metaSmall,
+    color: colors.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  exercisePreviewTitle: {
+    ...typography.cardTitle,
+    color: colors.textPrimary,
+    marginTop: spacing.micro,
+  },
+  exercisePreviewMeta: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.micro,
   },
   dayList: {
     paddingHorizontal: spacing.screen,

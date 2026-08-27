@@ -8,7 +8,13 @@ import { exercises } from '../../data/exercises';
 import { colors, typography, spacing, radius, componentSizes } from '../../theme/colors';
 import { AuthContext } from '../../context/AuthContext';
 import { resolveExerciseAnatomyImage } from '../../data/exerciseAnatomyImages';
+import { getDefaultExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 import MotionPressable from '../../components/MotionPressable';
+import {
+  getDefaultVariation,
+  getExerciseVariations,
+  getVariationCount,
+} from '../../data/exerciseVariations';
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Abs', 'Legs', 'Glutes'];
 const EXERCISE_LAYOUT = LinearTransition.duration(180).reduceMotion(ReduceMotion.System);
@@ -20,7 +26,15 @@ export default function ExerciseLibraryScreen({ navigation }) {
 
   // Filter exercises based on search and selected muscle group
   const filteredExercises = exercises.filter((ex) => {
-    const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const variationSearchText = getExerciseVariations(ex.id)
+      .map((variation) => `${variation.name} ${variation.summary} ${variation.primaryMuscles.join(' ')}`)
+      .join(' ')
+      .toLowerCase();
+    const matchesSearch =
+      normalizedQuery.length === 0 ||
+      ex.name.toLowerCase().includes(normalizedQuery) ||
+      variationSearchText.includes(normalizedQuery);
     const matchesMuscle = selectedMuscle === 'All' || ex.muscleGroup === selectedMuscle;
     return matchesSearch && matchesMuscle;
   });
@@ -56,20 +70,29 @@ export default function ExerciseLibraryScreen({ navigation }) {
   );
 
   const renderExerciseCard = ({ item }) => {
-    const thumbnailSource = resolveExerciseAnatomyImage(item.id, user?.gender, 'front');
+    const defaultVariation = getDefaultVariation(item.id);
+    const demonstration = getDefaultExerciseDemonstration(item.id, 'male');
+    const thumbnailSource = demonstration
+      ? demonstration.start
+      : resolveExerciseAnatomyImage(item.id, user?.gender, 'front');
+    const variationCount = getVariationCount(item.id);
 
     return (
       <MotionPressable
         style={styles.card}
         onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name}. ${variationCount} variations. ${item.muscleGroup}.`}
       >
         <View style={styles.cardImageFrame}>
           <Image
             source={thumbnailSource}
             style={styles.cardImage}
-            resizeMode="contain"
+            resizeMode={demonstration ? 'cover' : 'contain'}
             accessible
-            accessibilityLabel={`${item.name} front muscle target preview`}
+            accessibilityLabel={demonstration
+              ? `${defaultVariation.name} male exercise demonstration`
+              : `${item.name} front muscle target preview`}
           />
         </View>
       
@@ -83,7 +106,7 @@ export default function ExerciseLibraryScreen({ navigation }) {
               style={styles.cardChevron}
             />
           </View>
-          <Text style={styles.cardMuscle}>{item.muscleGroup}</Text>
+          <Text style={styles.cardMuscle}>{item.muscleGroup} · {variationCount} variations</Text>
 
           <View style={styles.cardTagsRow}>
             <View style={styles.tag}>
@@ -257,7 +280,7 @@ const styles = StyleSheet.create({
   },
   cardImageFrame: {
     height: 88,
-    aspectRatio: 849 / 926,
+    aspectRatio: 4 / 3,
     borderRadius: radius.control,
     backgroundColor: colors.surfaceWarm,
     marginRight: spacing.md,
@@ -270,6 +293,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    minWidth: 0,
   },
   cardHeader: {
     flexDirection: 'row',

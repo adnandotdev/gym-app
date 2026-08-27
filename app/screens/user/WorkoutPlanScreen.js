@@ -8,7 +8,8 @@ import {
   StatusBar,
   Alert,
   RefreshControl,
-  ActivityIndicator
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { useWorkoutPlan } from '../../context/WorkoutPlanContext';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { colors, typography, spacing, radius, componentSizes } from '../../theme/colors';
+import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -95,27 +97,57 @@ export default function WorkoutPlanScreen({ navigation }) {
     </View>
   );
 
-  const renderPlanExercise = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.8}
-      onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
-    >
-      <View style={styles.cardIconBox}>
-        <Ionicons name="barbell-outline" size={24} color={colors.accent} />
-      </View>
+  const renderPlanExercise = ({ item }) => {
+    const demonstration = resolveExerciseDemonstration(
+      item.exerciseVariantId || item.id,
+      item.exerciseFamilyId,
+      'male',
+    );
 
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.name}</Text>
-          <TouchableOpacity onPress={() => handleRemoveExercise(item.id)} style={styles.deleteBtn}>
-            <Ionicons name="trash-outline" size={18} color={colors.danger} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.cardSubtitle}>{item.sets} Sets • {item.reps} Reps</Text>
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.cardOpenArea}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.name}. ${item.variationSummary || item.muscleGroup}. ${item.sets} sets of ${item.reps} reps.`}
+        >
+          <View style={styles.cardImageBox}>
+            {demonstration ? (
+              <Image
+                source={demonstration.start}
+                style={styles.cardImage}
+                resizeMode="cover"
+                accessible={false}
+                importantForAccessibility="no"
+              />
+            ) : (
+              <Ionicons name="barbell-outline" size={24} color={colors.accent} />
+            )}
+          </View>
+
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            {item.variationSummary ? (
+              <Text style={styles.cardVariation} numberOfLines={2}>{item.variationSummary}</Text>
+            ) : null}
+            <Text style={styles.cardSubtitle}>
+              {item.sets} Sets • {item.reps} Reps{item.equipment ? ` • ${item.equipment}` : ''}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => handleRemoveExercise(item.id)}
+          style={styles.deleteBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${item.name} from ${selectedDay}`}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.danger} />
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -294,27 +326,39 @@ const styles = StyleSheet.create({
     borderColor: colors.hairline,
     alignItems: 'center',
   },
-  cardIconBox: {
-    width: 48,
-    height: 48,
+  cardOpenArea: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardImageBox: {
+    width: 72,
+    aspectRatio: 4 / 3,
     borderRadius: radius.control,
     backgroundColor: colors.accentLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
+    overflow: 'hidden',
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
   },
   cardContent: {
     flex: 1,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    minWidth: 0,
   },
   cardTitle: {
     ...typography.cardTitle,
     color: colors.textPrimary,
     flex: 1,
+  },
+  cardVariation: {
+    ...typography.caption,
+    color: colors.bodySecondary,
+    marginTop: spacing.micro,
   },
   cardSubtitle: {
     ...typography.statLabel,
@@ -322,8 +366,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   deleteBtn: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     borderRadius: radius.control,
     backgroundColor: colors.selectedSoft,
     justifyContent: 'center',

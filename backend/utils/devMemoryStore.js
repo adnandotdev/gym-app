@@ -75,9 +75,28 @@ const updateUser = (id, fields) => {
 
 const getWorkoutPlan = (userId) => workoutPlansByUserId.get(userId) || createEmptyWeek();
 
+const getExerciseIdentity = (exercise) => {
+  if (exercise.exerciseVariantId) return exercise.exerciseVariantId;
+  return exercise.id;
+};
+
+const isSamePlannedExercise = (existingExercise, incomingExercise) =>
+  getExerciseIdentity(existingExercise) === getExerciseIdentity(incomingExercise) ||
+  (incomingExercise.isDefaultVariation === true &&
+    existingExercise.id === incomingExercise.exerciseFamilyId) ||
+  (existingExercise.isDefaultVariation === true &&
+    incomingExercise.id === existingExercise.exerciseFamilyId);
+
+const copyExercise = (exercise) => ({
+  ...exercise,
+  instructions: [...(exercise.instructions || [])],
+  primaryMuscles: [...(exercise.primaryMuscles || [])],
+  secondaryMuscles: [...(exercise.secondaryMuscles || [])],
+});
+
 const setWorkoutPlanDay = (userId, day, exercises) => {
   const currentPlan = getWorkoutPlan(userId);
-  const nextPlan = { ...currentPlan, [day]: exercises || [] };
+  const nextPlan = { ...currentPlan, [day]: (exercises || []).map(copyExercise) };
   workoutPlansByUserId.set(userId, nextPlan);
   return nextPlan;
 };
@@ -85,10 +104,12 @@ const setWorkoutPlanDay = (userId, day, exercises) => {
 const addWorkoutExercise = (userId, day, exercise) => {
   const currentPlan = getWorkoutPlan(userId);
   const dayExercises = currentPlan[day] || [];
-  const exists = dayExercises.some((item) => item.id === exercise.id);
+  const exists = dayExercises.some(
+    (item) => isSamePlannedExercise(item, exercise)
+  );
   if (exists) return { duplicate: true, exercises: dayExercises };
 
-  const nextExercises = [...dayExercises, exercise];
+  const nextExercises = [...dayExercises, copyExercise(exercise)];
   const nextPlan = { ...currentPlan, [day]: nextExercises };
   workoutPlansByUserId.set(userId, nextPlan);
   return { duplicate: false, exercises: nextExercises };

@@ -14,6 +14,16 @@ const getEmptyWeek = () => ({
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 const getUserId = (req) => String(req.user._id || req.user.id);
+const getExerciseIdentity = (exercise) => {
+  if (exercise.exerciseVariantId) return exercise.exerciseVariantId;
+  return exercise.id;
+};
+const isSamePlannedExercise = (existingExercise, incomingExercise) =>
+  getExerciseIdentity(existingExercise) === getExerciseIdentity(incomingExercise) ||
+  (incomingExercise.isDefaultVariation === true &&
+    existingExercise.id === incomingExercise.exerciseFamilyId) ||
+  (existingExercise.isDefaultVariation === true &&
+    incomingExercise.id === existingExercise.exerciseFamilyId);
 
 // @route   GET /api/workout-plan
 // @desc    Get user's complete weekly workout plan
@@ -109,7 +119,9 @@ router.post('/add-exercise', protect, async (req, res) => {
     }
 
     // Check for duplicate exercise in that day
-    const exists = plan.week[day].some(ex => ex.id === exercise.id);
+    const exists = plan.week[day].some(
+      (existingExercise) => isSamePlannedExercise(existingExercise, exercise)
+    );
     if (exists) {
       return res.status(400).json({ success: false, message: 'Exercise already in plan for this day' });
     }

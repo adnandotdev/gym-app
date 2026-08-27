@@ -66,7 +66,10 @@ describe('motion system contracts', () => {
     assert.match(navigatorSource, /name="AddToPlan"/);
     assert.match(navigatorSource, /presentation:\s*'formSheet'/);
     assert.match(navigatorSource, /sheetAllowedDetents:/);
-    assert.match(detailSource, /navigation\.navigate\('AddToPlan',\s*\{ exercise \}\)/);
+    assert.match(
+      detailSource,
+      /navigation\.navigate\('AddToPlan',\s*\{ exercise: selectedExercise \}\)/,
+    );
     assert.doesNotMatch(detailSource, /\bAnimated\b|<Modal\b|TouchableWithoutFeedback|slideAnim/);
     assert.match(sheetSource, /navigation\.goBack\(\)/);
   });

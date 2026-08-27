@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from './AuthContext';
+import { getWorkoutExerciseIdentity } from '../data/exerciseVariations';
 import { 
   fetchWorkoutPlan, 
   addExerciseToDay, 
@@ -80,7 +81,10 @@ export const WorkoutPlanProvider = ({ children }) => {
 
   const addExercise = async (day, exercise) => {
     // Check local duplicate first
-    const exists = plan[day]?.some(ex => ex.id === exercise.id);
+    const exerciseIdentity = getWorkoutExerciseIdentity(exercise);
+    const exists = plan[day]?.some(
+      (existingExercise) => getWorkoutExerciseIdentity(existingExercise) === exerciseIdentity
+    );
     if (exists) {
       throw new Error('Exercise already in plan for this day');
     }

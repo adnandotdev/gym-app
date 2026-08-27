@@ -13,6 +13,14 @@ const exerciseSchema = new mongoose.Schema({
   description: { type: String },
   instructions: [{ type: String }],
   muscleGroupKey: { type: String },
+  exerciseFamilyId: { type: String },
+  exerciseVariantId: { type: String },
+  anatomyExerciseId: { type: String },
+  variationSummary: { type: String },
+  setupCue: { type: String },
+  variationGroup: { type: String },
+  isDefaultVariation: { type: Boolean, default: false },
+  primaryMuscles: [{ type: String }],
   addedAt: { type: Date, default: Date.now },
 });
 

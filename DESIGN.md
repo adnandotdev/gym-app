@@ -87,8 +87,32 @@ Cards are flat with a hairline border. Shadows are reserved for real overlays su
 - Home: compact greeting, three quick stats, one dark workout panel, then quick actions and quote.
 - Exercises: title, helper text, search, horizontal muscle filters, flat exercise rows.
 - Workout Plan: day selector, list of programmed exercises, quiet empty state, ink add action.
-- Exercise Detail: anatomy visual, compact metadata, instruction rows, sticky Add to Plan action, bottom sheet day selector.
+- Exercise Detail: movement demonstration first, compact metadata and variation controls, separate anatomy viewer, instruction rows, and a sticky Add to Plan action.
+- Exercise variations: keep one library card per exercise family. Exercise Detail owns one concrete selected variation, and an accessible single-select sheet groups recommended, same-movement, different-emphasis, and progression/alternative options. Selecting a variation updates the movement demonstration, equipment, exact muscle-emphasis tags, setup cue, and instructions before the user adds it to the plan. The anatomy image remains an explicitly labeled family-level map until variation-specific anatomy assets exist.
+- Exercise demonstrations: movement imagery comes before anatomy. The first card shows the selected variation's male start/finish positions with the complete machine, attachment, grip, stance, and contact points visible. Muscle highlighting never appears on this photographic demonstration.
 - Profile: centered identity, four body stats, current goal band, settings rows, outlined destructive logout.
+
+## Exercise Variation Pattern
+
+- The parent exercise is for discovery and education; only a concrete variation is saved to a workout.
+- Use radio selection for choosing one variation. Checkboxes are reserved for a future explicit multi-add planner flow.
+- Each variation row shows its name, one-sentence difference, equipment, and primary muscle emphasis.
+- The default variation is labeled `Recommended`; choosing a different variation never silently adds it.
+- `Add Another Variation` reopens the same picker. Different variations from one family may coexist in a workout, while the exact same variation is rejected as a duplicate.
+- Preserve history identity with `exerciseFamilyId` and `exerciseVariantId`. Personal records must remain variation-specific.
+- Existing anatomy images remain keyed by `anatomyExerciseId`; do not pass a variation ID into the image resolver.
+- Avoid unsupported isolation language such as `inner chest`, `lower abs`, or grip-based `lower lat isolation`.
+
+## Exercise Demonstration Pattern
+
+- Each concrete variation owns two male demonstration assets: `male-start.jpg` and `male-finish.jpg`.
+- Store them at `assets/images/exercises/demonstrations/<variation-id>/` and resolve them through static Metro `require()` entries in `app/data/exerciseDemonstrationImages.js`.
+- Demonstrations use a consistent male identity, almost-white studio background, realistic equipment, correct biomechanics, and a fixed 4:3 landscape frame. Do not add red muscle overlays, labels, arrows, logos, or watermarks.
+- Exercise Library uses the recommended variation's start image. The variation sheet uses each option's start image. Workout Plan and Add to Plan use the saved variation's start image.
+- Exercise Detail order is movement demonstration, equipment and variation, `Muscles worked` anatomy, instructions, then the sticky plan action.
+- Start and Finish are accessible tabs outside the image. Changing the variation resets the demonstration to Start.
+- Anatomy stays a separate front/back viewer. Red is reserved for primary and secondary muscle emphasis there.
+- This release contains male demonstration assets only. Female demonstration requests must return no image until an independently generated and validated female set is added; never silently relabel a male demonstration as female.
 
 ## Navigation
 

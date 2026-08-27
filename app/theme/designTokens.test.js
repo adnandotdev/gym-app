@@ -84,22 +84,25 @@ describe('gym editorial design tokens', () => {
     assert.match(workoutPlanSource, /headerText:\s*\{[\s\S]*flex:\s*1,[\s\S]*minWidth:\s*0/);
     assert.match(workoutPlanSource, /daysContent:\s*\{[\s\S]*paddingHorizontal:\s*spacing\.screen/);
     assert.match(workoutPlanSource, /clearBtn:\s*\{[\s\S]*width:\s*44,[\s\S]*height:\s*44/);
+    assert.match(workoutPlanSource, /accessibilityLabel=\{`Remove \$\{item\.name\} from \$\{selectedDay\}`\}/);
+    assert.match(workoutPlanSource, /deleteBtn:\s*\{[\s\S]*width:\s*44,[\s\S]*height:\s*44/);
     assert.match(workoutPlanSource, /paddingBottom:\s*componentSizes\.floatingActionSize/);
     assert.match(themeSource, /floatingActionSize:\s*52/);
     assert.match(workoutPlanSource, /<SafeAreaView style=\{styles\.container\} edges=\{\['top', 'left', 'right'\]\}>/);
     assert.doesNotMatch(workoutPlanSource, /contentInsetAdjustmentBehavior="automatic"/);
   });
 
-  it('preserves complete anatomy artwork instead of cropping or stretching it', () => {
+  it('preserves complete anatomy artwork and uses landscape movement covers', () => {
     const visualizerSource = readAppFile('app/components/MuscleVisualizer.js');
     const librarySource = readAppFile('app/screens/user/ExerciseLibraryScreen.js');
 
     assert.doesNotMatch(visualizerSource, /resizeMode="stretch"/);
     assert.match(visualizerSource, /style=\{styles\.anatomyImage\}[\s\S]*resizeMode="contain"/);
-    assert.match(librarySource, /style=\{styles\.cardImage\}[\s\S]*resizeMode="contain"/);
+    assert.match(librarySource, /getDefaultExerciseDemonstration/);
+    assert.match(librarySource, /resizeMode=\{demonstration \? 'cover' : 'contain'\}/);
     assert.match(
       librarySource,
-      /cardImageFrame:\s*\{[\s\S]*height:\s*88,[\s\S]*aspectRatio:\s*849 \/ 926/,
+      /cardImageFrame:\s*\{[\s\S]*height:\s*88,[\s\S]*aspectRatio:\s*4 \/ 3/,
     );
     assert.doesNotMatch(librarySource, /cardImageFrame:\s*\{[\s\S]*width:\s*72/);
     assert.match(librarySource, /cardTitle:\s*\{[\s\S]*flexShrink:\s*1/);
