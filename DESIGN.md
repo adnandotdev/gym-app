@@ -105,10 +105,12 @@ Cards are flat with a hairline border. Shadows are reserved for real overlays su
 
 ## Exercise Demonstration Pattern
 
-- Each concrete variation owns two male demonstration assets: `male-start.jpg` and `male-finish.jpg`.
+- Each concrete variation owns three male demonstration assets: `male-thumbnail.jpg`, `male-start.jpg`, and `male-finish.jpg`.
 - Store them at `assets/images/exercises/demonstrations/<variation-id>/` and resolve them through static Metro `require()` entries in `app/data/exerciseDemonstrationImages.js`.
-- Demonstrations use a consistent male identity, almost-white studio background, realistic equipment, correct biomechanics, and a fixed 4:3 landscape frame. Do not add red muscle overlays, labels, arrows, logos, or watermarks.
-- Exercise Library uses the recommended variation's start image. The variation sheet uses each option's start image. Workout Plan and Add to Plan use the saved variation's start image.
+- Detail demonstrations use native full-bleed 768x576 (4:3) Start and Finish frames. Generate or recompose the scene at 4:3; never aspect-fit it onto a larger canvas, stretch the body, or crop the head, hands, feet, bar ends, bench, attachment, or required machine. Start and Finish must keep a consistent camera, subject scale, and equipment position.
+- Compact exercise surfaces use a dedicated 480x360 (4:3) thumbnail derived from the approved Start frame. The thumbnail pipeline may resize but must not independently crop or add a background canvas. Exercise Library, variation selection, Workout Plan, and Add to Plan use this thumbnail; Exercise Detail continues to use the full Start/Finish pair.
+- Demonstrations use a consistent male identity, almost-white `#F7F7F4` studio environment, realistic equipment, and correct biomechanics. Natural visible studio background around a complete pose is allowed; uniform inserted padding bars or seams are not. Do not add red muscle overlays, labels, arrows, logos, or watermarks.
+- Exercise Library uses the recommended variation's thumbnail. The variation sheet uses each option's thumbnail. Workout Plan and Add to Plan use the saved variation's thumbnail; every thumbnail is derived from its approved Start frame.
 - Exercise Detail order is movement demonstration, equipment and variation, `Muscles worked` anatomy, instructions, then the sticky plan action.
 - Start and Finish are accessible tabs outside the image. Changing the variation resets the demonstration to Start.
 - Anatomy stays a separate front/back viewer. Red is reserved for primary and secondary muscle emphasis there.

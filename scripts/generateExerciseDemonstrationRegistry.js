@@ -10,6 +10,7 @@ const variationIds = Object.values(EXERCISE_VARIATIONS)
   .sort();
 
 const entries = variationIds.map((variationId) => `  '${variationId}': Object.freeze({
+    thumbnail: require('../../assets/images/exercises/demonstrations/${variationId}/male-thumbnail.jpg'),
     start: require('../../assets/images/exercises/demonstrations/${variationId}/male-start.jpg'),
     finish: require('../../assets/images/exercises/demonstrations/${variationId}/male-finish.jpg'),
   }),`).join('\n');

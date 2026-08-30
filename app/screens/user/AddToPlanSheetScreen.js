@@ -99,7 +99,7 @@ export default function AddToPlanSheetScreen({ route, navigation }) {
       {demonstration && (
         <View style={styles.exercisePreview}>
           <Image
-            source={demonstration.start}
+            source={demonstration.thumbnail}
             style={styles.exercisePreviewImage}
             resizeMode="cover"
             accessible

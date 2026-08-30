@@ -73,7 +73,7 @@ export default function ExerciseLibraryScreen({ navigation }) {
     const defaultVariation = getDefaultVariation(item.id);
     const demonstration = getDefaultExerciseDemonstration(item.id, 'male');
     const thumbnailSource = demonstration
-      ? demonstration.start
+      ? demonstration.thumbnail
       : resolveExerciseAnatomyImage(item.id, user?.gender, 'front');
     const variationCount = getVariationCount(item.id);
 

@@ -4,8 +4,8 @@ import ImageIO
 import UniformTypeIdentifiers
 
 let arguments = CommandLine.arguments
-guard arguments.count == 3 else {
-  fputs("Usage: processExerciseDemonstrationDiptych.swift <source> <output-directory>\n", stderr)
+guard arguments.count == 3 || (arguments.count == 4 && arguments[3] == "--allow-equal-split") else {
+  fputs("Usage: processExerciseDemonstrationDiptych.swift <source> <output-directory> [--allow-equal-split]\n", stderr)
   exit(64)
 }
 
@@ -123,9 +123,14 @@ func dividerRange(in image: CGImage) -> ClosedRange<Int>? {
   return lowerBound...upperBound
 }
 
+let allowEqualSplit = arguments.count == 4
 let detectedDivider = dividerRange(in: sourceImage)
-let topPanelHeight = detectedDivider?.lowerBound ?? sourceHeight / 2
-let bottomPanelOrigin = (detectedDivider?.upperBound).map { $0 + 1 } ?? sourceHeight / 2
+guard detectedDivider != nil || allowEqualSplit else {
+  fputs("Could not find a near-white divider between Start and Finish panels; visually verify the source before using --allow-equal-split\n", stderr)
+  exit(65)
+}
+let topPanelHeight = allowEqualSplit ? sourceHeight / 2 : detectedDivider!.lowerBound
+let bottomPanelOrigin = allowEqualSplit ? sourceHeight / 2 : detectedDivider!.upperBound + 1
 let panelSpecs = [
   (name: "start", rect: CGRect(x: 0, y: 0, width: sourceWidth, height: topPanelHeight)),
   (name: "finish", rect: CGRect(
@@ -136,58 +141,11 @@ let panelSpecs = [
   )),
 ]
 
-func cropToVisibleContent(_ image: CGImage) -> CGImage {
-  guard let bitmap = rgbaPixels(for: image) else { return image }
-  var minX = image.width
-  var minY = image.height
-  var maxX = -1
-  var maxY = -1
-
-  for y in stride(from: 0, to: image.height, by: 2) {
-    for x in stride(from: 0, to: image.width, by: 2) {
-      let offset = y * bitmap.bytesPerRow + x * 4
-      let red = Int(bitmap.pixels[offset])
-      let green = Int(bitmap.pixels[offset + 1])
-      let blue = Int(bitmap.pixels[offset + 2])
-      let luminance = (77 * red + 150 * green + 29 * blue) / 256
-      // Exercise subjects and equipment are materially darker than the
-      // near-white studio sweep. A conservative threshold avoids treating a
-      // soft gray background gradient as content.
-      if luminance < 225 {
-        minX = min(minX, x)
-        minY = min(minY, y)
-        maxX = max(maxX, x)
-        maxY = max(maxY, y)
-      }
-    }
+func renderNativePanel(_ image: CGImage, width: Int, height: Int) -> CGImage? {
+  let panelRatio = Double(image.width) / Double(image.height)
+  guard abs(panelRatio - 4.0 / 3.0) <= 0.02 else {
+    return nil
   }
-
-  guard maxX >= minX, maxY >= minY else { return image }
-  let contentWidth = maxX - minX + 1
-  let contentHeight = maxY - minY + 1
-  guard
-    contentWidth >= image.width / 10,
-    contentHeight >= image.height / 10
-  else {
-    return image
-  }
-
-  let horizontalMargin = max(12, Int(Double(contentWidth) * 0.07))
-  let verticalMargin = max(12, Int(Double(contentHeight) * 0.07))
-  let cropMinX = max(0, minX - horizontalMargin)
-  let cropMinY = max(0, minY - verticalMargin)
-  let cropMaxX = min(image.width, maxX + horizontalMargin + 1)
-  let cropMaxY = min(image.height, maxY + verticalMargin + 1)
-
-  return image.cropping(to: CGRect(
-    x: cropMinX,
-    y: cropMinY,
-    width: cropMaxX - cropMinX,
-    height: cropMaxY - cropMinY
-  )) ?? image
-}
-
-func aspectFitOnCanvas(_ image: CGImage, width: Int, height: Int) -> CGImage? {
   guard let context = CGContext(
     data: nil,
     width: width,
@@ -200,29 +158,8 @@ func aspectFitOnCanvas(_ image: CGImage, width: Int, height: Int) -> CGImage? {
     return nil
   }
 
-  context.setFillColor(CGColor(
-    red: 247.0 / 255.0,
-    green: 247.0 / 255.0,
-    blue: 244.0 / 255.0,
-    alpha: 1
-  ))
-  context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-
-  let scale = min(
-    Double(width) / Double(image.width),
-    Double(height) / Double(image.height)
-  )
-  let fittedWidth = Double(image.width) * scale
-  let fittedHeight = Double(image.height) * scale
-  let destination = CGRect(
-    x: (Double(width) - fittedWidth) / 2,
-    y: (Double(height) - fittedHeight) / 2,
-    width: fittedWidth,
-    height: fittedHeight
-  )
-
   context.interpolationQuality = .high
-  context.draw(image, in: destination)
+  context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
   return context.makeImage()
 }
 
@@ -244,8 +181,8 @@ func writeJpeg(_ image: CGImage, to url: URL) -> Bool {
 for panelSpec in panelSpecs {
   guard
     let panel = sourceImage.cropping(to: panelSpec.rect),
-    let resizedPanel = aspectFitOnCanvas(
-      cropToVisibleContent(panel),
+    let resizedPanel = renderNativePanel(
+      panel,
       width: 768,
       height: 576
     )

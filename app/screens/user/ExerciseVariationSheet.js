@@ -101,7 +101,7 @@ export default function ExerciseVariationSheet({
                     >
                       {demonstration && (
                         <Image
-                          source={demonstration.start}
+                          source={demonstration.thumbnail}
                           style={styles.variationThumbnail}
                           resizeMode="cover"
                           accessible={false}

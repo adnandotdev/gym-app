@@ -116,7 +116,7 @@ export default function WorkoutPlanScreen({ navigation }) {
           <View style={styles.cardImageBox}>
             {demonstration ? (
               <Image
-                source={demonstration.start}
+                source={demonstration.thumbnail}
                 style={styles.cardImage}
                 resizeMode="cover"
                 accessible={false}

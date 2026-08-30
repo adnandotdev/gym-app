@@ -3,13 +3,18 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
+const { spawnSync } = require('node:child_process');
 const { EXERCISE_VARIATIONS } = require('./exerciseVariations');
 
 const ROOT = path.resolve(__dirname, '../..');
 const REGISTRY_PATH = path.join(__dirname, 'exerciseDemonstrationImages.js');
+const REGISTRY_GENERATOR_PATH = path.join(ROOT, 'scripts/generateExerciseDemonstrationRegistry.js');
 const DEMO_ROOT = path.join(ROOT, 'assets/images/exercises/demonstrations');
 const EXPECTED_WIDTH = 768;
 const EXPECTED_HEIGHT = 576;
+const EXPECTED_THUMBNAIL_WIDTH = 480;
+const EXPECTED_THUMBNAIL_HEIGHT = 360;
 const MAX_FILE_BYTES = 220 * 1024;
 
 const getJpegDimensions = (filePath) => {
@@ -57,17 +62,49 @@ const loadResolver = () => {
 };
 
 describe('male exercise demonstration imagery', () => {
-  it('registers start and finish images for every variation with static Metro requires', () => {
+  it('keeps the registry generator aligned with the thumbnail, start and finish contract', () => {
+    const source = fs.readFileSync(REGISTRY_GENERATOR_PATH, 'utf8');
+
+    assert.match(source, /thumbnail:\s*require\([^\n]+male-thumbnail\.jpg/);
+    assert.match(source, /start:\s*require\([^\n]+male-start\.jpg/);
+    assert.match(source, /finish:\s*require\([^\n]+male-finish\.jpg/);
+  });
+
+  it('registers thumbnail, start and finish images for every variation with static Metro requires', () => {
     const source = fs.readFileSync(REGISTRY_PATH, 'utf8');
     const registeredIds = [...source.matchAll(/'([^']+--[^']+)':\s*Object\.freeze\(\{/g)]
       .map((match) => match[1])
       .sort();
 
     assert.deepEqual(registeredIds, getExpectedVariationIds());
+    assert.match(source, /thumbnail:\s*require\('\.\.\/\.\.\/assets\/images\/exercises\/demonstrations\//);
+    assert.match(source, /male-thumbnail\.jpg/);
     assert.match(source, /start:\s*require\('\.\.\/\.\.\/assets\/images\/exercises\/demonstrations\//);
     assert.match(source, /male-start\.jpg/);
     assert.match(source, /finish:\s*require\('\.\.\/\.\.\/assets\/images\/exercises\/demonstrations\//);
     assert.match(source, /male-finish\.jpg/);
+  });
+
+  it('keeps one compact 4:3 thumbnail for every variation', () => {
+    const files = getExpectedVariationIds().map((variationId) =>
+      path.join(DEMO_ROOT, variationId, 'male-thumbnail.jpg'));
+
+    assert.equal(files.length, 160);
+    files.forEach((filePath) => {
+      assert.equal(fs.existsSync(filePath), true, `Missing ${filePath}`);
+      assert.deepEqual(getJpegDimensions(filePath), {
+        width: EXPECTED_THUMBNAIL_WIDTH,
+        height: EXPECTED_THUMBNAIL_HEIGHT,
+      });
+      assert.ok(
+        fs.statSync(filePath).size <= MAX_FILE_BYTES,
+        `${filePath} exceeds ${MAX_FILE_BYTES} bytes`,
+      );
+    });
+
+    const hashes = files.map((filePath) =>
+      crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex'));
+    assert.equal(new Set(hashes).size, files.length, 'Every variation thumbnail must be unique');
   });
 
   it('keeps all 320 male display assets complete, consistent and bundle-conscious', () => {
@@ -93,6 +130,44 @@ describe('male exercise demonstration imagery', () => {
     const hashes = files.map((filePath) =>
       crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex'));
     assert.equal(new Set(hashes).size, files.length, 'Every movement phase must be unique');
+  });
+
+  it('rejects inserted uniform padding bands across committed demonstration imagery', () => {
+    const auditor = path.join(ROOT, 'scripts/auditExerciseImageFullBleed.swift');
+    assert.equal(fs.existsSync(auditor), true, 'Missing pixel-level full-bleed auditor');
+    const moduleCache = path.join(os.tmpdir(), 'exercise-audit-swift-cache');
+    fs.mkdirSync(moduleCache, { recursive: true });
+    const result = spawnSync('swift', [
+      '-module-cache-path',
+      moduleCache,
+      auditor,
+      DEMO_ROOT,
+    ], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /Audited 480 full-bleed exercise images/);
+  });
+
+  it('creates full-bleed Detail frames without adding a fitted background canvas', () => {
+    const processorSource = fs.readFileSync(
+      path.join(ROOT, 'scripts/processExerciseDemonstrationDiptych.swift'),
+      'utf8',
+    );
+
+    assert.match(processorSource, /renderNativePanel[\s\S]*width: 768,[\s\S]*height: 576/);
+    assert.match(processorSource, /abs\(panelRatio - 4\.0 \/ 3\.0\) <= 0\.02/);
+    assert.doesNotMatch(processorSource, /aspectFitOnCanvas|aspectFillOnCanvas|cropToVisibleContent|setFillColor|context\.fill/);
+
+    const normalizerSource = fs.readFileSync(
+      path.join(ROOT, 'scripts/normalizeExerciseDemonstrationFrame.swift'),
+      'utf8',
+    );
+    assert.match(normalizerSource, /image\.width \* 3 == image\.height \* 4/);
+    assert.doesNotMatch(normalizerSource, /aspectFit|setFillColor|context\.fill|visibleContentCrop/);
   });
 
   it('resolves selected demonstrations and falls back to the family default', () => {
@@ -141,16 +216,17 @@ describe('male exercise demonstration imagery', () => {
     );
     assert.match(detailSource, /variationId=\{selectedExercise\.exerciseVariantId\}/);
     assert.match(librarySource, /getDefaultExerciseDemonstration/);
-    assert.match(librarySource, /demonstration\.start/);
+    assert.match(librarySource, /demonstration\.thumbnail/);
     assert.match(sheetSource, /resolveExerciseDemonstration/);
     assert.match(sheetSource, /variation\.id/);
     assert.match(sheetSource, /variation\.equipment/);
+    assert.match(sheetSource, /demonstration\.thumbnail/);
     assert.match(planSource, /resolveExerciseDemonstration/);
     assert.match(planSource, /item\.exerciseVariantId \|\| item\.id/);
-    assert.match(planSource, /demonstration\.start/);
+    assert.match(planSource, /demonstration\.thumbnail/);
     assert.match(addToPlanSource, /resolveExerciseDemonstration/);
     assert.match(addToPlanSource, /exercise\.exerciseVariantId \|\| exercise\.id/);
-    assert.match(addToPlanSource, /demonstration\.start/);
+    assert.match(addToPlanSource, /demonstration\.thumbnail/);
   });
 
   it('provides accessible start and finish controls without mixing in anatomy overlays', () => {
