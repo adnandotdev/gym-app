@@ -164,19 +164,17 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingTop: 80,
-    paddingHorizontal: 28,
+    paddingTop: 48,
+    paddingHorizontal: 24,
     paddingVertical: 40,
   },
   header: {
-    marginBottom: 36,
-    backgroundColor: colors.canvas,
-    padding: 28,
-    borderRadius: 12,
+    marginBottom: 40,
+    alignItems: 'center',
   },
   title: {
-    ...typography.heroDisplay,
-    color: colors.accentFocus,
+    ...typography.screenTitle,
+    color: colors.ink,
     marginBottom: 8,
   },
   subtitle: {
@@ -198,10 +196,9 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 11,
-    backgroundColor: colors.canvas,
+    borderWidth: 0,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceWarm,
   },
   inputContainerFocused: {
     borderColor: colors.accent,
@@ -211,7 +208,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontFamily: 'Overpass_400Regular',
+    fontSize: 16,
     paddingVertical: 16,
     paddingHorizontal: 16,
     color: colors.textPrimary,

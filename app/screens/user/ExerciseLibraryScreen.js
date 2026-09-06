@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { FlatList, Image, TextInput, StatusBar, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,9 @@ import { exercises } from '../../data/exercises';
 import { colors, typography, spacing, radius, componentSizes } from '../../theme/colors';
 import { AuthContext } from '../../context/AuthContext';
 import { resolveExerciseAnatomyImage } from '../../data/exerciseAnatomyImages';
-import { getDefaultExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
+import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 import MotionPressable from '../../components/MotionPressable';
+import { getCategoryById, getCategoryExercises } from '../../data/workoutCategories';
 import {
   getDefaultVariation,
   getExerciseVariations,
@@ -19,15 +20,35 @@ import {
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Abs', 'Legs', 'Glutes'];
 const EXERCISE_LAYOUT = LinearTransition.duration(180).reduceMotion(ReduceMotion.System);
 
-export default function ExerciseLibraryScreen({ navigation }) {
+export default function ExerciseLibraryScreen({ navigation, route }) {
   const { user } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMuscle, setSelectedMuscle] = useState('All');
+  const [selectedMuscle, setSelectedMuscle] = useState(route?.params?.initialMuscle || 'All');
+  const [activeCategoryId, setActiveCategoryId] = useState(route?.params?.initialCategoryId || null);
+  const activeCategory = getCategoryById(activeCategoryId);
+  const categoryExercises = useMemo(
+    () => (activeCategoryId ? getCategoryExercises(activeCategoryId) : exercises),
+    [activeCategoryId],
+  );
+
+  useEffect(() => {
+    const requestedMuscle = route?.params?.initialMuscle;
+    if (requestedMuscle && MUSCLE_GROUPS.includes(requestedMuscle)) {
+      setSelectedMuscle(requestedMuscle);
+    }
+  }, [route?.params?.initialMuscle]);
+
+  useEffect(() => {
+    const requestedCategory = route?.params?.initialCategoryId;
+    setActiveCategoryId(getCategoryById(requestedCategory)?.id || null);
+    if (requestedCategory) setSelectedMuscle('All');
+  }, [route?.params?.initialCategoryId]);
 
   // Filter exercises based on search and selected muscle group
-  const filteredExercises = exercises.filter((ex) => {
+  const filteredExercises = categoryExercises.filter((ex) => {
+    const familyId = ex.exerciseFamilyId || ex.id;
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const variationSearchText = getExerciseVariations(ex.id)
+    const variationSearchText = getExerciseVariations(familyId)
       .map((variation) => `${variation.name} ${variation.summary} ${variation.primaryMuscles.join(' ')}`)
       .join(' ')
       .toLowerCase();
@@ -70,12 +91,16 @@ export default function ExerciseLibraryScreen({ navigation }) {
   );
 
   const renderExerciseCard = ({ item }) => {
-    const defaultVariation = getDefaultVariation(item.id);
-    const demonstration = getDefaultExerciseDemonstration(item.id, 'male');
+    const familyId = item.exerciseFamilyId || item.id;
+    const selectedVariation = item.exerciseVariantId
+      ? getExerciseVariations(familyId).find((variation) => variation.id === item.exerciseVariantId)
+      : getDefaultVariation(familyId);
+    const defaultVariation = selectedVariation || getDefaultVariation(familyId);
+    const demonstration = resolveExerciseDemonstration(item.exerciseVariantId, familyId, 'male');
     const thumbnailSource = demonstration
       ? demonstration.thumbnail
       : resolveExerciseAnatomyImage(item.id, user?.gender, 'front');
-    const variationCount = getVariationCount(item.id);
+    const variationCount = getVariationCount(familyId);
 
     return (
       <MotionPressable
@@ -131,9 +156,26 @@ export default function ExerciseLibraryScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Exercise Library</Text>
-        <Text style={styles.headerCopy}>Search by movement, muscle, or training style.</Text>
+        <Text style={styles.headerTitle}>{activeCategory?.title || 'Exercise Library'}</Text>
+        <Text style={styles.headerCopy}>{activeCategory?.description || 'Find the right movement for today’s workout.'}</Text>
       </View>
+
+      {activeCategory ? (
+        <View style={styles.categoryBanner}>
+          <View style={styles.categoryBannerCopy}>
+            <Text style={styles.categoryBannerTitle}>{filteredExercises.length} mapped exercise{filteredExercises.length === 1 ? '' : 's'}</Text>
+            <Text style={styles.categoryBannerMeta}>Search and muscle filters apply inside this category.</Text>
+          </View>
+          <MotionPressable
+            onPress={() => setActiveCategoryId(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Clear category"
+            style={styles.clearCategoryButton}
+          >
+            <Text style={styles.clearCategoryText}>Clear</Text>
+          </MotionPressable>
+        </View>
+      ) : null}
       
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -198,10 +240,8 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
     backgroundColor: colors.canvas,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
   },
   headerTitle: {
     ...typography.displayLarge,
@@ -212,6 +252,20 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.micro,
   },
+  categoryBanner: {
+    marginHorizontal: spacing.screen,
+    padding: spacing.md,
+    borderRadius: radius.control,
+    backgroundColor: colors.selectedSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  categoryBannerCopy: { flex: 1 },
+  categoryBannerTitle: { ...typography.action, color: colors.primary },
+  categoryBannerMeta: { ...typography.caption, color: colors.muted, marginTop: spacing.micro },
+  clearCategoryButton: { minWidth: 52, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  clearCategoryText: { ...typography.action, color: colors.primary },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,7 +277,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     height: componentSizes.searchHeight,
     borderWidth: 1,
-    borderColor: colors.hairline,
+    borderColor: colors.surfaceWarm,
   },
   searchIcon: {
     marginRight: spacing.xs,
@@ -247,14 +301,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
     borderRadius: 999,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     marginRight: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.hairline,
+    borderColor: colors.border,
   },
   filterPillActive: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
+    backgroundColor: colors.white,
+    borderColor: colors.primary,
   },
   filterPillText: {
     color: colors.textPrimary,
@@ -262,7 +316,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   filterPillTextActive: {
-    color: colors.textOnDark,
+    color: colors.primary,
   },
   listContent: {
     paddingHorizontal: spacing.screen,
@@ -270,19 +324,18 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: radius.control,
     padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
+    borderWidth: 0,
     alignItems: 'center',
   },
   cardImageFrame: {
-    height: 88,
-    aspectRatio: 4 / 3,
+    width: 72,
+    height: 56,
     borderRadius: radius.control,
-    backgroundColor: colors.surfaceWarm,
+    backgroundColor: colors.white,
     marginRight: spacing.md,
     overflow: 'hidden',
     position: 'relative',

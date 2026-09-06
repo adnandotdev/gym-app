@@ -32,7 +32,11 @@ describe('motion system contracts', () => {
       );
     });
 
-    assert.match(readAppFile('app.json'), /"newArchEnabled":\s*true/);
+    const appConfig = JSON.parse(readAppFile('app.json'));
+    assert.equal(appConfig.expo.sdkVersion, '57.0.0');
+    assert.equal(appConfig.expo.newArchEnabled, undefined);
+    assert.equal(appConfig.expo.splash, undefined);
+    assert.equal(appConfig.expo.android.edgeToEdgeEnabled, undefined);
   });
 
   it('wraps the application in the gesture-handler root', () => {

@@ -1,159 +1,77 @@
-# MuscleMap Editorial Gym Design System
+# MuscleMap Figma Design System
 
-## Purpose
+## Source and scope
 
-MuscleMap uses the pasted Tasteful editorial mobile system as its structure: compact screens, calm density, serif-like display hierarchy, flat surfaces, hairline dividers, and quiet actions. The colors are adapted for a gym app: warm training-room neutrals, charcoal ink, muted iron, olive recovery accents, and amber performance signals.
+MuscleMap follows the supplied Workout App UI Kit in Figma while preserving the app's product name, data, authentication contract, exercise library, and React Navigation structure. The closest reference screens are Home, Categories, Exercise Timer, Exercise Completion, Sign In, and Sign Up.
 
-The interface should feel like a serious training journal and exercise guide, not a flashy fitness marketplace.
+The Figma file does not show a side drawer. MuscleMap therefore keeps its four-destination bottom navigation instead of introducing an unsupported drawer pattern.
 
-## Design Thesis
+## Foundation
 
-- Editorial first: large page titles, compact metadata, and meaningful hierarchy.
-- Warm and physical: bone canvas, iron ink, and muted training accents.
-- Dense, not crowded: show sets, reps, muscles, difficulty, and progress without heavy cards.
-- Trust through context: exercise rows show equipment, difficulty, and programmed volume.
-- Actions stay quiet: selected states use ink; performance color is reserved for stats and difficulty.
-- Flat by default: avoid glossy gradients, heavy shadows, oversized pills, and neon gym colors.
+- Typeface: Overpass in weights 400, 500, 600, 700, and 800, bundled through Expo Google Fonts.
+- Primary: `#7C4DFF`.
+- Hero gradient end: `#6F00FF`.
+- Ink: `#1E1E22`.
+- Canvas and cards: white with cool inset surfaces at `#F3F6FB`.
+- Muted text: `#9C9BC2`.
+- Borders: `#CFCFE2`.
+- Screen gutter: 24px.
+- Standard control radius: 12px; card radius: 16px.
+- Primary action height: 56px.
+- Bottom navigation height: 80px.
 
-## Color Tokens
+Repeated values live in `app/theme/colors.js`. Screens compose those tokens rather than defining new brand colors.
 
-| Token | Value | Use |
-|---|---:|---|
-| `colors.ink` | `#17140F` | Primary text, active tabs, selected chips, main buttons |
-| `colors.canvas` | `#F7F3EA` | Main app background and button text on ink |
-| `colors.stage` | `#E5DFD2` | Secondary warm background |
-| `colors.surface` | `#FFFCF5` | Flat list rows, panels, and sheet surfaces |
-| `colors.surfaceWarm` | `#F0E9DC` | Search fields and quiet inset surfaces |
-| `colors.surfaceIron` | `#292622` | Dark training panels |
-| `colors.hairline` | `#E2D8C8` | Section dividers and light borders |
-| `colors.border` | `#CFC4B3` | Standard control borders |
-| `colors.muted` | `#82786A` | Secondary copy and inactive metadata |
-| `colors.bodySecondary` | `#332E27` | Supporting body copy |
-| `colors.recovery` | `#2F4A3C` | Positive/recovery/accent state |
-| `colors.recoverySoft` | `#DDE8DE` | Quiet recovery tint |
-| `colors.performance` | `#C27A2C` | Difficulty, PR, rating, and performance data |
-| `colors.performanceSoft` | `#F4E3C9` | Performance stat background |
-| `colors.danger` | `#9B2F1D` | Error and destructive actions |
+## Screen patterns
 
-Legacy aliases in `app/theme/colors.js` intentionally map existing imports such as `colors.accent`, `colors.parchment`, and `colors.gold` onto this palette.
+- Authentication uses a centered brand mark, one task per step, cool outlined fields, and a full-width purple primary action.
+- Home uses the branded header, notification shortcut, purple workout hero, progress cards, category chips, and compact workout rows.
+- Categories use search, horizontal single-select chips, and compact illustrated rows.
+- Workout sessions use a centered movement illustration, large timer, paired restart/pause controls, skip action, and a bottom completion sheet.
+- Notifications use grouped rows, unread indicators, and an explicit mark-all-read action.
+- Exercise Detail retains the existing movement, variation, anatomy, instruction, and add-to-plan capabilities while inheriting the new visual tokens.
+- Workout Plan, Profile, onboarding, admin, password recovery, and registration retain their existing behavior while inheriting the shared palette, typography, borders, radii, spacing, and controls.
 
-## Typography
+## Navigation and motion
 
-Use Georgia on iOS/web and the platform serif on Android for display tokens. Use the platform system sans-serif for interface text. Do not download fonts at runtime; the app must remain available offline.
+- The bottom bar labels are Home, Activity, Calendar, and Profile; existing internal route names remain unchanged for compatibility.
+- Active destinations use white; inactive destinations use softened lavender on the purple bar.
+- Stack navigation keeps native page transitions. Press feedback uses the existing motion pressable component.
+- Temporary completion content appears as a bottom sheet over a dimmed scrim.
 
-| Token | Size / line height | Weight | Use |
-|---|---:|---:|---|
-| `heroDisplay` | `40 / 42` | 500 | Brand and welcome statements |
-| `displayLarge` | `30 / 34` | 500 | Main screen headings |
-| `screenTitle` | `24 / 29` | 500 | Detail and profile titles |
-| `cardTitle` | `18 / 23` | 600 | Exercise names and section cards |
-| `body` | `15 / 23` | 400 | Standard copy |
-| `caption` | `13 / 19` | 500 | Helper text |
-| `action` | `14 / 17` | 700 | Buttons and selected controls |
-| `metaSmall` | `11 / 16` | 600 | Navigation and compact metadata |
+## Product boundaries
 
-Interface letter spacing is `0`; display styles use a subtle `-0.2` to `-0.3px` editorial tightening. Do not scale font size with viewport width.
+- Social sign-in is visibly marked as coming soon and stays disabled until provider credentials and backend verification exist.
+- The staged sign-in UI still submits to the existing email/password login contract.
+- Registration and password recovery retain the current backend flow; Figma OTP steps are not simulated without a server contract.
+- Notifications and the active workout timer remain local to the current app session. Finished workout summaries persist per signed-in user on the device; backend synchronization still needs an API contract.
+- Home progress must use real plan data or an honest empty state; it must never invent completion.
 
-## Spacing And Shape
+## Category and workout behavior
 
-Base unit: `4px`.
+- Homepage categories use stable IDs and explicit variation-level membership. They do not reuse broad muscle filters as a shortcut.
+- Full Body Warm Up contains the lower-intensity bodyweight and resistance-band choices already supported by the catalog. It is not presented as a medically personalized warm-up.
+- Both Side Plank resolves only the Side Plank variation. Strength, Abs, Torso and Trap, and Lower Back each resolve their own curated list.
+- Card counts are derived from resolvable catalog entries. An invalid or removed entry disappears safely instead of producing a dead detail page.
+- Category selection composes with library search and muscle filtering and can be cleared without leaving the screen.
+- Start Exercise snapshots today's saved plan in its saved order. An empty day opens Calendar so the user can add exercises first.
+- Each workout queue item is pending, completed, or skipped. Complete and Skip both advance to the next pending exercise; Skip never masquerades as completion and can be undone.
+- Pause stops the timer, Reset restarts only the current exercise timer, and total session time remains intact.
+- The final sheet distinguishes completed and skipped counts. An all-skipped session says the workout ended rather than congratulating the user for completion.
+- Activity stores finished summaries separately for each user and computes today's totals from the local calendar date, not merely the weekday name.
 
-| Token | Value | Use |
-|---|---:|---|
-| `spacing.micro` | `4` | Small offsets |
-| `spacing.xs` | `8` | Tight row gaps |
-| `spacing.sm` | `12` | Compact component rhythm |
-| `spacing.md` | `16` | List row padding |
-| `spacing.lg` | `20` | Panel padding |
-| `spacing.screen` | `24` | Screen gutter |
-| `spacing.xl` | `32` | Section separation |
-| `spacing.xxl` | `48` | Empty/loading state offset |
+## Accessibility and responsive rules
 
-| Token | Value | Use |
-|---|---:|---|
-| `radius.control` | `3` | Buttons, inputs, icon boxes, compact controls |
-| `radius.card` | `8` | Repeated content cards and panels |
-| `radius.chip` | `999` | Filter chips only |
-| `componentSizes.primaryButtonHeight` | `52` | Primary actions |
-| `componentSizes.secondaryButtonHeight` | `44` | Secondary actions |
-| `componentSizes.searchHeight` | `46` | Search field |
-
-Cards are flat with a hairline border. Shadows are reserved for real overlays such as modals and sheets.
-
-## Screen Rules
-
-- Authentication: warm canvas, serif page title, concise support copy, permanent field labels, and one ink primary action.
-- Onboarding: one decision per step, quiet progress, warm flat choices, recovery-green selection, and fixed actions that respect the bottom safe area.
-- Home: compact greeting, three quick stats, one dark workout panel, then quick actions and quote.
-- Exercises: title, helper text, search, horizontal muscle filters, flat exercise rows.
-- Workout Plan: day selector, list of programmed exercises, quiet empty state, ink add action.
-- Exercise Detail: movement demonstration first, compact metadata and variation controls, separate anatomy viewer, instruction rows, and a sticky Add to Plan action.
-- Exercise variations: keep one library card per exercise family. Exercise Detail owns one concrete selected variation, and an accessible single-select sheet groups recommended, same-movement, different-emphasis, and progression/alternative options. Selecting a variation updates the movement demonstration, equipment, exact muscle-emphasis tags, setup cue, and instructions before the user adds it to the plan. The anatomy image remains an explicitly labeled family-level map until variation-specific anatomy assets exist.
-- Exercise demonstrations: movement imagery comes before anatomy. The first card shows the selected variation's male start/finish positions with the complete machine, attachment, grip, stance, and contact points visible. Muscle highlighting never appears on this photographic demonstration.
-- Profile: centered identity, four body stats, current goal band, settings rows, outlined destructive logout.
-
-## Exercise Variation Pattern
-
-- The parent exercise is for discovery and education; only a concrete variation is saved to a workout.
-- Use radio selection for choosing one variation. Checkboxes are reserved for a future explicit multi-add planner flow.
-- Each variation row shows its name, one-sentence difference, equipment, and primary muscle emphasis.
-- The default variation is labeled `Recommended`; choosing a different variation never silently adds it.
-- `Add Another Variation` reopens the same picker. Different variations from one family may coexist in a workout, while the exact same variation is rejected as a duplicate.
-- Preserve history identity with `exerciseFamilyId` and `exerciseVariantId`. Personal records must remain variation-specific.
-- Existing anatomy images remain keyed by `anatomyExerciseId`; do not pass a variation ID into the image resolver.
-- Avoid unsupported isolation language such as `inner chest`, `lower abs`, or grip-based `lower lat isolation`.
-
-## Exercise Demonstration Pattern
-
-- Each concrete variation owns three male demonstration assets: `male-thumbnail.jpg`, `male-start.jpg`, and `male-finish.jpg`.
-- Store them at `assets/images/exercises/demonstrations/<variation-id>/` and resolve them through static Metro `require()` entries in `app/data/exerciseDemonstrationImages.js`.
-- Detail demonstrations use native full-bleed 768x576 (4:3) Start and Finish frames. Generate or recompose the scene at 4:3; never aspect-fit it onto a larger canvas, stretch the body, or crop the head, hands, feet, bar ends, bench, attachment, or required machine. Start and Finish must keep a consistent camera, subject scale, and equipment position.
-- Compact exercise surfaces use a dedicated 480x360 (4:3) thumbnail derived from the approved Start frame. The thumbnail pipeline may resize but must not independently crop or add a background canvas. Exercise Library, variation selection, Workout Plan, and Add to Plan use this thumbnail; Exercise Detail continues to use the full Start/Finish pair.
-- Demonstrations use a consistent male identity, almost-white `#F7F7F4` studio environment, realistic equipment, and correct biomechanics. Natural visible studio background around a complete pose is allowed; uniform inserted padding bars or seams are not. Do not add red muscle overlays, labels, arrows, logos, or watermarks.
-- Exercise Library uses the recommended variation's thumbnail. The variation sheet uses each option's thumbnail. Workout Plan and Add to Plan use the saved variation's thumbnail; every thumbnail is derived from its approved Start frame.
-- Exercise Detail order is movement demonstration, equipment and variation, `Muscles worked` anatomy, instructions, then the sticky plan action.
-- Start and Finish are accessible tabs outside the image. Changing the variation resets the demonstration to Start.
-- Anatomy stays a separate front/back viewer. Red is reserved for primary and secondary muscle emphasis there.
-- This release contains male demonstration assets only. Female demonstration requests must return no image until an independently generated and validated female set is added; never silently relabel a male demonstration as female.
-
-## Navigation
-
-Bottom navigation uses four destinations: Home, Exercises, My Plan, Profile. Active state is ink plus a small underline; inactive items use disabled text. Keep minimum touch targets at `44px`.
-
-## Motion
-
-Use motion to clarify hierarchy, feedback, and temporary surfaces. It should feel athletic and responsive, not decorative.
-
-- Page changes: keep the current React Navigation native stack and configure screen-level transitions through stack options.
-- Tab changes: keep tab changes calm; do not add sideways page slides between peer tabs.
-- In-screen animation: use `react-native-reanimated` for press feedback, list entry, layout changes, and state transitions that must stay smooth while JavaScript is busy.
-- Gestures: use `react-native-gesture-handler` for drag, swipe, pull, and sheet interactions.
-- Popups and sheets: prefer native stack `presentation` options for route-level modals; use Reanimated and Gesture Handler for custom inline sheets or transient overlays.
-- Haptics: use `expo-haptics` only for user-initiated commits such as selection changes, snap points, success, and failure.
-- Illustrations: use `lottie-react-native` only for empty states, success states, and rare delight moments, not for core UI controls.
-- Reduced motion: keep opacity/color state changes, but remove large translation, scale, parallax, and overshoot when the system asks for reduced motion.
-
-## Accessibility And Responsive Rules
-
-- Respect top and bottom safe-area insets and never cover scroll content with fixed actions.
-- Meaningful anatomy images require accessibility labels.
-- Never communicate selection, progress, or error by color alone.
-- Preserve readable type with larger system text; below 360px, reduce gutters and spacing before text size.
-- Keep filter chips horizontally scrollable.
-
-## Implementation Rules
-
-- `app/theme/colors.js` owns repeated color, spacing, radius, typography, and component-size values.
-- Screens may compose tokens but must not redefine brand colors.
 - Use `SafeAreaView` from `react-native-safe-area-context`.
-- Preserve the current React Navigation architecture and Expo SDK 54 compatibility.
-- Do not add the universal `@expo/ui` layer because it requires SDK 56+.
-- Continue using genuine per-exercise front/back anatomy artwork through the existing resolver.
+- Interactive controls require at least a 44px target and an accessible label or visible text.
+- Disabled integrations must expose their disabled state and explanatory text.
+- Selection, progress, and errors cannot rely on color alone.
+- Horizontal category chips remain scrollable on narrow screens.
+- Reduce gutters before reducing type on screens below 360px.
 
-## Anti-Patterns
+## Existing exercise asset rules
 
-- Do not reintroduce the old green-dominant palette (`#00754A`, `#006241`, `#D4E9E2`).
-- Do not use neon gradients, giant circular CTAs, glossy surfaces, or marketing-style hero copy.
-- Do not use shadows for ordinary cards.
-- Do not nest cards inside cards.
-- Do not use rounded pill buttons except for filter chips.
+- Keep concrete exercise variation imagery in the existing static Metro resolver.
+- Use the selected variation's start/finish images for demonstrations and keep anatomy as a separate front/back viewer.
+- Do not relabel male demonstration assets as female assets.
+- Do not fabricate unsupported muscle-isolation claims or workout history.

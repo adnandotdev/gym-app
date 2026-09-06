@@ -215,7 +215,7 @@ describe('male exercise demonstration imagery', () => {
       'movement demonstration must appear before anatomy',
     );
     assert.match(detailSource, /variationId=\{selectedExercise\.exerciseVariantId\}/);
-    assert.match(librarySource, /getDefaultExerciseDemonstration/);
+    assert.match(librarySource, /resolveExerciseDemonstration/);
     assert.match(librarySource, /demonstration\.thumbnail/);
     assert.match(sheetSource, /resolveExerciseDemonstration/);
     assert.match(sheetSource, /variation\.id/);

@@ -1,350 +1,158 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar
-} from 'react-native';
+import React, { useContext, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import Button from '../../components/Button';
-import { colors, typography } from '../../theme/colors';
+import MotionPressable from '../../components/MotionPressable';
+import { colors, radius, spacing, typography } from '../../theme/colors';
 
-const LoginScreen = ({ navigation }) => {
+export default function LoginScreen({ navigation }) {
+  const { login } = useContext(AuthContext);
+  const passwordRef = useRef(null);
+  const [step, setStep] = useState('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  // Field focus states
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-
-  // Field validation error states
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-
-  // Password visibility
   const [showPassword, setShowPassword] = useState(false);
-
+  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Keyboard navigation refs
-  const passwordRef = useRef(null);
-
-  const { login } = useContext(AuthContext);
-
-  // Frontend validation
-  const validateForm = () => {
-    let isValid = true;
-
-    // Email validation
-    if (!email.trim()) {
-      setEmailError('Email address is required.');
-      isValid = false;
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email.trim())) {
-        setEmailError('Please enter a valid email address.');
-        isValid = false;
-      } else {
-        setEmailError('');
-      }
+  const continueWithEmail = () => {
+    const normalizedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
     }
-
-    // Password validation
-    if (!password) {
-      setPasswordError('Password is required.');
-      isValid = false;
-    } else {
-      setPasswordError('');
-    }
-
-    return isValid;
+    setError('');
+    setStep('password');
+    requestAnimationFrame(() => passwordRef.current?.focus());
   };
 
   const handleLogin = async () => {
-    if (!validateForm()) {
-      Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please fix the highlighted errors.',
-      });
+    if (!password) {
+      setError('Password is required.');
       return;
     }
-
+    setError('');
     setIsSubmitting(true);
-
     try {
       const result = await login(email.trim(), password);
-      if (result.success) {
-        Toast.show({
-          type: 'success',
-          text1: 'Welcome Back!',
-          text2: 'Successfully signed in.',
-        });
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Login Failed',
-          text2: result.error || 'Invalid credentials. Please try again.',
-        });
+      if (!result.success) {
+        setError(result.error || 'Invalid credentials. Please try again.');
+        Toast.show({ type: 'error', text1: 'Login Failed', text2: result.error });
       }
-    } catch (err) {
-      console.error(err);
-      Toast.show({
-        type: 'error',
-        text1: 'Connection Error',
-        text2: 'Failed to communicate with the server.',
-      });
+    } catch (loginError) {
+      setError('Unable to connect. Please try again.');
+      console.error(loginError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const goBack = () => {
+    if (step === 'password') {
+      setStep('email');
+      setError('');
+      return;
+    }
+    if (navigation.canGoBack()) navigation.goBack();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header section */}
-          <View style={styles.header}>
-            <Text style={styles.title}>MuscleMap</Text>
-            <Text style={styles.subtitle}>A clearer way to train, recover, and see your progress.</Text>
-          </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <MotionPressable style={styles.backButton} onPress={goBack} accessibilityRole="button" accessibilityLabel="Go back">
+            <Ionicons name="arrow-back" size={28} color={colors.ink} />
+          </MotionPressable>
 
-          {/* Form section */}
+          <Text style={styles.title}>Sign In</Text>
           <View style={styles.form}>
-            {/* Email field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <View
-                style={[
-                  styles.inputContainer,
-                  emailFocused && styles.inputContainerFocused,
-                  emailError ? styles.inputContainerError : null,
-                ]}
-              >
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoFocus={true}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    if (emailError) setEmailError('');
-                  }}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                  editable={!isSubmitting}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordRef.current?.focus()}
-                />
-              </View>
-              {emailError ? (
-                <Text style={styles.errorText}>{emailError}</Text>
-              ) : null}
+            <Text style={styles.label}>{step === 'email' ? 'Email Address' : 'Password'}</Text>
+            <View style={[styles.inputShell, error && styles.inputError]}>
+              <TextInput
+                ref={step === 'password' ? passwordRef : undefined}
+                style={styles.input}
+                placeholder={step === 'email' ? 'Enter email address' : 'Enter password'}
+                placeholderTextColor={colors.muted}
+                value={step === 'email' ? email : password}
+                onChangeText={(value) => {
+                  step === 'email' ? setEmail(value) : setPassword(value);
+                  if (error) setError('');
+                }}
+                keyboardType={step === 'email' ? 'email-address' : 'default'}
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry={step === 'password' && !showPassword}
+                returnKeyType={step === 'email' ? 'next' : 'done'}
+                onSubmitEditing={step === 'email' ? continueWithEmail : handleLogin}
+              />
+              {step === 'password' && (
+                <MotionPressable style={styles.eyeButton} onPress={() => setShowPassword((visible) => !visible)} accessibilityLabel="Toggle password visibility">
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.muted} />
+                </MotionPressable>
+              )}
             </View>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {/* Password field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View
-                style={[
-                  styles.inputContainer,
-                  passwordFocused && styles.inputContainerFocused,
-                  passwordError ? styles.inputContainerError : null,
-                ]}
-              >
-                <TextInput
-                  ref={passwordRef}
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="Enter your password"
-                  placeholderTextColor={colors.textSecondary}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    if (passwordError) setPasswordError('');
-                  }}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                  editable={!isSubmitting}
-                  returnKeyType="done"
-                  onSubmitEditing={handleLogin}
-                />
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIconContainer}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
-              {passwordError ? (
-                <Text style={styles.errorText}>{passwordError}</Text>
-              ) : null}
-            </View>
+            {step === 'password' && (
+              <MotionPressable style={styles.forgot} onPress={() => navigation.navigate('ForgotPassword')}>
+                <Text style={styles.forgotText}>Forgot password?</Text>
+              </MotionPressable>
+            )}
 
-            {/* Forgot password */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('ForgotPassword')}
-              style={styles.forgotPasswordLink}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <Button
-              title="Sign In"
-              onPress={handleLogin}
-              loading={isSubmitting}
-            />
+            <Button title={step === 'email' ? 'Continue' : 'Sign In'} onPress={step === 'email' ? continueWithEmail : handleLogin} loading={isSubmitting} />
           </View>
 
-          {/* Footer section */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.linkText}>Sign Up</Text>
-            </TouchableOpacity>
+          <View style={styles.accountRow}>
+            <Text style={styles.mutedText}>Don't have an account? </Text>
+            <MotionPressable onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.accountLink}>Create Account</Text>
+            </MotionPressable>
           </View>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.divider} /><Text style={styles.or}>Or</Text><View style={styles.divider} />
+          </View>
+          <View style={styles.socialRow} accessibilityRole="group" accessibilityLabel="Social sign-in providers coming soon">
+            {['G', '●', 'f'].map((label) => (
+              <View key={label} style={styles.socialButton} accessibilityRole="button" accessibilityState={{ disabled: true }}>
+                <Text style={styles.socialText}>{label}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.socialNote}>Social sign-in coming soon</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.parchment,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 80,
-    paddingHorizontal: 28,
-    paddingVertical: 40,
-  },
-  header: {
-    marginBottom: 36,
-    backgroundColor: colors.canvas,
-    padding: 28,
-    borderRadius: 12,
-  },
-  title: {
-    ...typography.heroDisplay,
-    color: colors.accentFocus,
-    marginBottom: 8,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  form: {
-    width: '100%',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    ...typography.caption,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  inputContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 11,
-    backgroundColor: colors.canvas,
-  },
-  inputContainerFocused: {
-    borderColor: colors.accent,
-  },
-  inputContainerError: {
-    borderColor: colors.danger,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    color: colors.textPrimary,
-  },
-  passwordInput: {
-    paddingRight: 50,
-  },
-  eyeIconContainer: {
-    position: 'absolute',
-    right: 16,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  forgotPasswordLink: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 32,
-  },
-  footerText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  linkText: {
-    color: colors.accent,
-    fontWeight: '400',
-    fontSize: 14,
-  },
+  container: { flex: 1, backgroundColor: colors.white },
+  keyboard: { flex: 1 },
+  content: { flexGrow: 1, paddingHorizontal: spacing.screen, paddingBottom: spacing.xl },
+  backButton: { width: 44, height: 44, justifyContent: 'center', marginTop: spacing.xs },
+  title: { ...typography.screenTitle, textAlign: 'center', color: colors.ink, marginTop: spacing.xs },
+  form: { marginTop: 82 },
+  label: { ...typography.body, fontFamily: 'Overpass_500Medium', color: colors.ink, marginBottom: spacing.md },
+  inputShell: { height: 58, borderRadius: radius.card, backgroundColor: colors.surfaceWarm, flexDirection: 'row', alignItems: 'center' },
+  inputError: { borderWidth: 1, borderColor: colors.danger },
+  input: { flex: 1, paddingHorizontal: spacing.md, fontFamily: 'Overpass_400Regular', fontSize: 16, color: colors.ink },
+  eyeButton: { width: 52, height: 58, alignItems: 'center', justifyContent: 'center' },
+  error: { ...typography.caption, color: colors.danger, marginTop: spacing.xs },
+  forgot: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
+  forgotText: { ...typography.caption, fontFamily: 'Overpass_500Medium', color: colors.ink },
+  accountRow: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
+  mutedText: { ...typography.caption, color: colors.muted },
+  accountLink: { ...typography.caption, fontFamily: 'Overpass_600SemiBold', color: colors.ink },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xl },
+  divider: { flex: 1, height: 1, backgroundColor: colors.hairline },
+  or: { ...typography.caption, color: colors.mutedStrong },
+  socialRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.screen, marginTop: spacing.xl },
+  socialButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F4F4F6', alignItems: 'center', justifyContent: 'center' },
+  socialText: { fontFamily: 'Overpass_700Bold', fontSize: 24, color: colors.ink },
+  socialNote: { ...typography.caption, color: colors.muted, textAlign: 'center', marginTop: spacing.sm },
 });
-
-export default LoginScreen;

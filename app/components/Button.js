@@ -19,7 +19,7 @@ const Button = ({ title, onPress, loading, disabled, style, textStyle }) => {
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={colors.ink} />
+        <ActivityIndicator size="small" color={colors.white} />
       ) : (
         <Text style={[styles.text, textStyle, isButtonDisabled && styles.textDisabled]}>{title}</Text>
       )}
@@ -29,21 +29,21 @@ const Button = ({ title, onPress, loading, disabled, style, textStyle }) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.primary,
     borderRadius: radius.control,
     minHeight: componentSizes.primaryButtonHeight,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     width: '100%',
-    marginVertical: spacing.sm,
+    marginVertical: spacing.xs,
   },
   buttonDisabled: {
     backgroundColor: colors.disabledBg,
   },
   text: {
     ...typography.action,
-    color: colors.canvas,
+    color: colors.white,
   },
   textDisabled: {
     color: colors.disabledText,

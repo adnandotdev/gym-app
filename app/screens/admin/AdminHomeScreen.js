@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import Button from '../../components/Button';
+import { colors, radius, spacing, typography } from '../../theme/colors';
 
 const AdminHomeScreen = () => {
   const { user, logout, isLoading } = useContext(AuthContext);
@@ -59,7 +60,7 @@ const AdminHomeScreen = () => {
               <Text style={styles.cardTitle}>Manage Exercises</Text>
               <Text style={styles.cardSubtitle}>Add, edit, or delete workouts</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#A79F92" />
+            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -78,7 +79,7 @@ const AdminHomeScreen = () => {
               <Text style={styles.cardTitle}>Manage Users</Text>
               <Text style={styles.cardSubtitle}>Audit logs, roles, and permissions</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#A79F92" />
+            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
           </TouchableOpacity>
         </View>
 
@@ -99,11 +100,11 @@ const AdminHomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   content: {
     flex: 1,
-    padding: 28,
+    padding: spacing.screen,
     justifyContent: 'space-between',
   },
   header: {
@@ -111,27 +112,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: '#17140F',
+    ...typography.screenTitle,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 15,
-    color: '#82786A',
+    color: colors.mutedStrong,
     marginTop: 4,
   },
   welcomeCard: {
-    backgroundColor: '#EEF2FF', // Indigo/Blue tint for Admin welcome
-    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.card,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: colors.primarySoft,
     position: 'relative',
   },
   welcomeText: {
     fontSize: 14,
-    color: '#4F46E5',
+    color: colors.primary,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -139,24 +139,24 @@ const styles = StyleSheet.create({
   nameText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     marginTop: 4,
   },
   emailText: {
     fontSize: 14,
-    color: '#82786A',
+    color: colors.mutedStrong,
     marginTop: 4,
     marginBottom: 12,
   },
   badge: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
-    color: '#FFFCF5',
+    color: colors.white,
     fontWeight: '600',
     fontSize: 11,
   },
@@ -167,20 +167,15 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0E9DC',
-    borderRadius: 16,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: radius.control,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#CFC4B3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.surfaceWarm,
   },
   cardIconContainer: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primarySoft,
     padding: 12,
     borderRadius: 12,
     marginRight: 16,
@@ -195,11 +190,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#17140F',
+    color: colors.ink,
   },
   cardSubtitle: {
     fontSize: 13,
-    color: '#82786A',
+    color: colors.mutedStrong,
     marginTop: 2,
   },
   footer: {
@@ -207,8 +202,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logoutButton: {
-    backgroundColor: '#9B2F1D',
-    shadowColor: '#9B2F1D',
+    backgroundColor: colors.danger,
   },
 });
 

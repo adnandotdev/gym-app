@@ -18,19 +18,23 @@ import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { colors, typography, spacing, radius, componentSizes } from '../../theme/colors';
 import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
+import { getTodayName } from '../../domain/workoutSession';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-export default function WorkoutPlanScreen({ navigation }) {
+export default function WorkoutPlanScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const [selectedDay, setSelectedDay] = useState('Monday');
+  const [selectedDay, setSelectedDay] = useState(route?.params?.initialDay || getTodayName());
   const { plan, loading, loadPlan, removeExercise, clearDay } = useWorkoutPlan();
   const [refreshing, setRefreshing] = useState(false);
 
-  const currentDayIndex = new Date().getDay();
-  const todayName = currentDayIndex === 0 ? 'Sunday' : DAYS[currentDayIndex - 1];
+  const todayName = getTodayName();
 
   const planExercises = plan[selectedDay] || [];
+
+  useEffect(() => {
+    if (DAYS.includes(route?.params?.initialDay)) setSelectedDay(route.params.initialDay);
+  }, [route?.params?.initialDay]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -181,6 +185,18 @@ export default function WorkoutPlanScreen({ navigation }) {
         />
       </View>
 
+      {planExercises.length > 0 ? (
+        <TouchableOpacity
+          style={styles.startWorkoutButton}
+          onPress={() => navigation.navigate('WorkoutSession', { day: selectedDay, exercises: planExercises, source: 'plan' })}
+          accessibilityRole="button"
+          accessibilityLabel={`Start ${selectedDay} workout with ${planExercises.length} exercises`}
+        >
+          <Ionicons name="play" size={20} color={colors.white} />
+          <Text style={styles.startWorkoutText}>Start {selectedDay === todayName ? 'Today’s' : `${selectedDay}’s`} Workout</Text>
+        </TouchableOpacity>
+      ) : null}
+
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
@@ -214,7 +230,7 @@ export default function WorkoutPlanScreen({ navigation }) {
               
               <TouchableOpacity 
                 style={styles.emptyBtn} 
-                onPress={() => navigation.navigate('Exercises')}
+                onPress={() => navigation.navigate('ExerciseLibrary')}
               >
                 <Text style={styles.emptyBtnText}>Browse Exercises</Text>
               </TouchableOpacity>
@@ -228,7 +244,7 @@ export default function WorkoutPlanScreen({ navigation }) {
         accessibilityRole="button"
         accessibilityLabel="Add exercise to workout plan"
         activeOpacity={0.8}
-        onPress={() => navigation.navigate('Exercises')}
+        onPress={() => navigation.navigate('ExerciseLibrary')}
       >
         <Ionicons name="add" size={28} color={colors.background} />
       </TouchableOpacity>
@@ -280,6 +296,18 @@ const styles = StyleSheet.create({
   daysContent: {
     paddingHorizontal: spacing.screen,
   },
+  startWorkoutButton: {
+    minHeight: 52,
+    marginHorizontal: spacing.screen,
+    marginBottom: spacing.md,
+    borderRadius: radius.control,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  startWorkoutText: { ...typography.action, color: colors.white },
   dayPillContainer: {
     alignItems: 'center',
     marginRight: spacing.sm,

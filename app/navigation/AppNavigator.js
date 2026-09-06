@@ -13,10 +13,14 @@ import MainTabNavigator from './MainTabNavigator';
 import ExerciseDetailScreen from '../screens/user/ExerciseDetailScreen';
 import AddToPlanSheetScreen from '../screens/user/AddToPlanSheetScreen';
 import EditProfileScreen from '../screens/user/EditProfileScreen';
+import NotificationsScreen from '../screens/user/NotificationsScreen';
+import WorkoutSessionScreen from '../screens/user/WorkoutSessionScreen';
+import ExerciseLibraryScreen from '../screens/user/ExerciseLibraryScreen';
 import AdminHomeScreen from '../screens/admin/AdminHomeScreen';
 import OnboardingNavigator from './OnboardingNavigator';
 
 import { WorkoutPlanProvider } from '../context/WorkoutPlanContext';
+import { WorkoutActivityProvider } from '../context/WorkoutActivityContext';
 import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
@@ -27,27 +31,32 @@ const AppStack = () => {
 
   return (
     <WorkoutPlanProvider>
-      <AppStackNav.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: reducedMotion ? 'fade' : 'default',
-        }}
-      >
-        <AppStackNav.Screen name="MainTabs" component={MainTabNavigator} />
-        <AppStackNav.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
-        <AppStackNav.Screen name="EditProfile" component={EditProfileScreen} />
-        <AppStackNav.Screen
-          name="AddToPlan"
-          component={AddToPlanSheetScreen}
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.65, 0.9],
-            sheetInitialDetentIndex: 0,
-            sheetGrabberVisible: true,
-            contentStyle: { backgroundColor: colors.surface },
+      <WorkoutActivityProvider>
+        <AppStackNav.Navigator
+          screenOptions={{
+            headerShown: false,
+            animation: reducedMotion ? 'fade' : 'default',
           }}
-        />
-      </AppStackNav.Navigator>
+        >
+          <AppStackNav.Screen name="MainTabs" component={MainTabNavigator} />
+          <AppStackNav.Screen name="ExerciseLibrary" component={ExerciseLibraryScreen} />
+          <AppStackNav.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
+          <AppStackNav.Screen name="EditProfile" component={EditProfileScreen} />
+          <AppStackNav.Screen name="Notifications" component={NotificationsScreen} />
+          <AppStackNav.Screen name="WorkoutSession" component={WorkoutSessionScreen} />
+          <AppStackNav.Screen
+            name="AddToPlan"
+            component={AddToPlanSheetScreen}
+            options={{
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.65, 0.9],
+              sheetInitialDetentIndex: 0,
+              sheetGrabberVisible: true,
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          />
+        </AppStackNav.Navigator>
+      </WorkoutActivityProvider>
     </WorkoutPlanProvider>
   );
 };
