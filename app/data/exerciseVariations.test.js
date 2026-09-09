@@ -170,8 +170,9 @@ describe('exercise variation interface contracts', () => {
     assert.match(detailSource, /routeExercise\.exerciseVariantId \|\| routeExercise\.id/);
     assert.match(detailSource, /hasVariations/);
     assert.match(detailSource, /anatomyExerciseId/);
-    assert.match(detailSource, /Choose Variation/);
-    assert.match(detailSource, /Add Another Variation/);
+    assert.match(detailSource, /Current variation/);
+    assert.match(detailSource, /Change variation/);
+    assert.doesNotMatch(detailSource, /Add Another Variation/);
     assert.match(detailSource, /navigation\.navigate\('AddToPlan',\s*\{ exercise: selectedExercise \}\)/);
     assert.match(sheetSource, /presentationStyle="pageSheet"/);
     assert.match(sheetSource, /accessibilityRole="radio"/);
@@ -182,6 +183,35 @@ describe('exercise variation interface contracts', () => {
     );
     assert.match(sheetSource, /accessibilityState=\{\{ checked: selected \}\}/);
     assert.match(sheetSource, /accessibilityViewIsModal/);
+  });
+
+  it('places the variation selector immediately after the demonstration', () => {
+    const detailSource = readAppFile('app/screens/user/ExerciseDetailScreen.js');
+    const demonstrationIndex = detailSource.indexOf('<ExerciseDemonstrationViewer');
+    const selectorIndex = detailSource.indexOf('style={styles.variationSelector}');
+    const statsIndex = detailSource.indexOf('style={styles.statsRow}');
+
+    assert.ok(demonstrationIndex >= 0, 'the exercise demonstration must be rendered');
+    assert.ok(selectorIndex > demonstrationIndex, 'variation selection must follow the demonstration');
+    assert.ok(statsIndex > selectorIndex, 'supporting exercise details must follow variation selection');
+    assert.match(detailSource, /accessibilityHint="Opens a list of available variations"/);
+    assert.match(detailSource, /numberOfLines=\{2\}>\{selectedExercise\.name\}/);
+    assert.match(detailSource, /minHeight: 72/);
+    assert.match(detailSource, /statBadge:\s*\{\s*minHeight: 44/);
+  });
+
+  it('keeps variation selection single-purpose and removes duplicate add language', () => {
+    const detailSource = readAppFile('app/screens/user/ExerciseDetailScreen.js');
+    const sheetSource = readAppFile('app/screens/user/ExerciseVariationSheet.js');
+
+    assert.equal(
+      (detailSource.match(/style=\{styles\.variationSelector\}/g) || []).length,
+      1,
+      'the detail screen must expose one variation selector',
+    );
+    assert.doesNotMatch(detailSource, /Add Another Variation|addAnotherButton|addAnotherText/);
+    assert.doesNotMatch(sheetSource, /add another|another afterward/i);
+    assert.match(sheetSource, /Use Selected Variation/);
   });
 
   it('surfaces family counts and persists variation identity', () => {

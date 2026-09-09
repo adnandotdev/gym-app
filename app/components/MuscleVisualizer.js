@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, radius, spacing } from '../theme/colors';
+import { radius, spacing } from '../theme/colors';
+import useThemedStyles from '../theme/useThemedStyles';
 import MotionPressable from './MotionPressable';
 import {
   hasExerciseAnatomyImage,
@@ -19,6 +20,7 @@ const overlayImages = [
 ];
 
 const ViewToggle = ({ view, onChange }) => {
+  const styles = useThemedStyles(createStyles);
   const selectView = (nextView) => {
     if (nextView === view) return;
 
@@ -54,6 +56,7 @@ export default function MuscleVisualizer({
   primaryMuscles = [],
   secondaryMuscles = [],
 }) {
+  const styles = useThemedStyles(createStyles);
   const [view, setView] = useState('front');
   const imageSource = resolveExerciseAnatomyImage(exerciseId, gender, view);
   const accessibilityLabel = exerciseName
@@ -119,16 +122,17 @@ export default function MuscleVisualizer({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   viewerContainer: {
     width: '100%',
     alignItems: 'center',
-    marginVertical: spacing.lg,
+    marginVertical: spacing.sm,
     gap: spacing.sm,
   },
   imageCard: {
     width: '100%',
     borderRadius: radius.card,
+    borderCurve: 'continuous',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     overflow: 'hidden',
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.surfaceDark,
     borderRadius: radius.control,
     padding: spacing.micro,
   },
@@ -161,14 +165,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleBtnActive: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.accent,
   },
   toggleText: {
     color: colors.mutedOnDark,
     fontWeight: '400',
   },
   toggleTextActive: {
-    color: colors.textPrimary,
+    color: colors.accentOnDark,
   },
   imageMapContainer: {
     width: '100%',

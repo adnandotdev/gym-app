@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import MotionPressable from '../../components/MotionPressable';
 import Button from '../../components/Button';
-import { colors, componentSizes, radius, spacing, typography } from '../../theme/colors';
+import { componentSizes, radius, spacing, typography } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 import { VARIATION_GROUP_LABELS, VARIATION_GROUPS } from '../../data/exerciseVariations';
 import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 
@@ -24,6 +26,8 @@ export default function ExerciseVariationSheet({
   onConfirm,
   onClose,
 }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const groupedVariations = useMemo(
     () =>
       VARIATION_GROUPS.map((group) => ({
@@ -56,7 +60,7 @@ export default function ExerciseVariationSheet({
           <View style={styles.headerCopy}>
             <Text style={styles.title}>Choose Variation</Text>
             <Text style={styles.subtitle}>
-              Select one version of {exerciseName}. You can add another afterward.
+              Select the version of {exerciseName} to use for this workout entry.
             </Text>
           </View>
           <MotionPressable
@@ -103,7 +107,7 @@ export default function ExerciseVariationSheet({
                         <Image
                           source={demonstration.thumbnail}
                           style={styles.variationThumbnail}
-                          resizeMode="cover"
+                          resizeMode="contain"
                           accessible={false}
                           importantForAccessibility="no"
                         />
@@ -142,7 +146,7 @@ export default function ExerciseVariationSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -205,8 +209,8 @@ const styles = StyleSheet.create({
     minHeight: 88,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   variationRowDivider: {
@@ -222,6 +226,7 @@ const styles = StyleSheet.create({
   },
   variationThumbnail: {
     width: 84,
+    flexShrink: 0,
     aspectRatio: 4 / 3,
     borderRadius: radius.control,
     backgroundColor: colors.surface,

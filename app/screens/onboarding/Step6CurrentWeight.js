@@ -1,24 +1,33 @@
 import React, { useContext, useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import { spacing } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const TICK_WIDTH = 10; // width of each tick item in pixels
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const RULER_PADDING = SCREEN_WIDTH / 2; // offset to align the center pointer
+const kgToLb = (kg) => Math.round(kg / 0.45359237);
+const lbToKg = (lb) => Math.round(lb * 0.45359237);
+const normalizeWeightUnit = (value) => (String(value).toLowerCase() === 'lb' ? 'lb' : 'kg');
 
 const Step6CurrentWeight = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
   const flatListRef = useRef(null);
 
-  const [unit, setUnit] = useState(onboardingData.weightUnit || 'kg'); // 'kg' or 'lb'
-  const [localWeightKg, setLocalWeightKg] = useState(onboardingData.currentWeight || 70);
-
-  // Conversion helpers
-  const kgToLb = (kg) => Math.round(kg / 0.45359237);
-  const lbToKg = (lb) => Math.round(lb * 0.45359237);
+  const initialUnit = normalizeWeightUnit(onboardingData.weightUnit);
+  const storedWeight = Number(onboardingData.currentWeight) || 70;
+  const [unit, setUnit] = useState(initialUnit); // 'kg' or 'lb'
+  const [localWeightKg, setLocalWeightKg] = useState(
+    initialUnit === 'lb' ? lbToKg(storedWeight) : storedWeight,
+  );
 
   // Ranges
   const minKg = 30;
@@ -126,7 +135,7 @@ const Step6CurrentWeight = ({ navigation }) => {
   const bmiDetails = getBmiDetails();
 
   const handleContinue = () => {
-    updateField('currentWeight', localWeightKg);
+    updateField('currentWeight', unit === 'kg' ? localWeightKg : kgToLb(localWeightKg));
     updateField('weightUnit', unit);
     updateField('bmi', bmi);
     navigation.navigate('Step7CurrentBodyShape');
@@ -151,7 +160,7 @@ const Step6CurrentWeight = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <OnboardingHeader currentStep={6} navigation={navigation} />
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Your current weight</Text>
         </View>
@@ -180,6 +189,11 @@ const Step6CurrentWeight = ({ navigation }) => {
           <Text style={styles.weightUnitText}>{unit.toUpperCase()}</Text>
         </View>
 
+        <View style={styles.rulerHint}>
+          <Ionicons name="swap-horizontal-outline" size={18} color={colors.primary} />
+          <Text style={styles.rulerHintText}>Swipe left or right to adjust your weight</Text>
+        </View>
+
         {/* Horizontal weight ruler picker */}
         <View style={styles.rulerOuter}>
           {/* Vertical yellow indicator line */}
@@ -196,6 +210,8 @@ const Step6CurrentWeight = ({ navigation }) => {
             decelerationRate="fast"
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            accessibilityLabel="Weight scale"
+            accessibilityHint="Swipe left or right to adjust your weight"
             contentContainerStyle={{
               paddingLeft: RULER_PADDING - TICK_WIDTH / 2,
               paddingRight: RULER_PADDING - TICK_WIDTH / 2,
@@ -231,7 +247,7 @@ const Step6CurrentWeight = ({ navigation }) => {
 
           <Text style={styles.bmiMessage}>{bmiDetails.message}</Text>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Continue button at bottom */}
       <View style={styles.footer}>
@@ -245,15 +261,16 @@ const Step6CurrentWeight = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
+    flexGrow: 1,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
     alignItems: 'center',
   },
   header: {
@@ -263,34 +280,35 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     textAlign: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: '#E2D8C8',
+    backgroundColor: colors.hairline,
     borderRadius: 24,
     padding: 4,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#CFC4B3',
+    borderColor: colors.border,
   },
   togglePill: {
     paddingVertical: 8,
     paddingHorizontal: 24,
     borderRadius: 20,
+    borderCurve: 'continuous',
   },
   togglePillActive: {
-    backgroundColor: '#2F4A3C',
+    backgroundColor: colors.primarySoft,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#82786A',
+    color: colors.textSecondary,
   },
   toggleTextActive: {
-    color: '#17140F',
+    color: colors.ink,
   },
   weightBox: {
     flexDirection: 'row',
@@ -298,25 +316,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
+  rulerHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  rulerHintText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
   weightText: {
     fontSize: 64,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
   },
   weightUnitText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#C27A2C',
+    color: colors.primary,
     marginLeft: 8,
   },
   rulerOuter: {
     width: SCREEN_WIDTH,
     height: 70,
     position: 'relative',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#CFC4B3',
+    borderColor: colors.border,
     marginBottom: 28,
   },
   centerIndicator: {
@@ -325,7 +361,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: '#2F4A3C',
+    backgroundColor: colors.primarySoft,
     zIndex: 10,
     pointerEvents: 'none',
   },
@@ -339,32 +375,33 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   tickLine: {
-    backgroundColor: '#A79F92',
+    backgroundColor: colors.muted,
     marginBottom: 8,
   },
   tickLineMajor: {
     width: 2,
     height: 24,
-    backgroundColor: '#17140F',
+    backgroundColor: colors.ink,
   },
   tickLineMinor: {
     width: 1,
     height: 12,
-    backgroundColor: '#A79B88',
+    backgroundColor: colors.muted,
   },
   tickLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#82786A',
+    color: colors.textSecondary,
   },
   bmiCard: {
     width: '100%',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 20,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: '#CFC4B3',
+    borderColor: colors.border,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -373,7 +410,7 @@ const styles = StyleSheet.create({
   bmiTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#82786A',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
@@ -392,7 +429,7 @@ const styles = StyleSheet.create({
   bmiBadgeText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFCF5',
+    color: colors.white,
   },
   bmiCategoryText: {
     fontSize: 18,
@@ -408,7 +445,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     height: 8,
-    backgroundColor: '#CFC4B3',
+    backgroundColor: colors.border,
     borderRadius: 4,
     marginTop: 3,
   },
@@ -421,30 +458,27 @@ const styles = StyleSheet.create({
     top: 0,
     width: 12,
     height: 14,
-    backgroundColor: '#17140F',
+    backgroundColor: colors.ink,
     borderRadius: 2,
     transform: [{ translateX: -6 }], // center it on the active ratio coordinate
   },
   bmiMessage: {
     fontSize: 13,
-    color: '#514B43',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
+    flexShrink: 0,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
+    borderTopColor: colors.hairline,
     zIndex: 10,
   },
   continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
+    backgroundColor: colors.primary,
+    shadowColor: colors.ink,
   },
 });
 

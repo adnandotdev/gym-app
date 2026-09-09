@@ -16,7 +16,7 @@ describe('Flexio Figma design system', () => {
     assert.match(source, /screen:\s*24/);
     assert.match(source, /control:\s*12/);
     assert.match(source, /card:\s*16/);
-    assert.match(source, /primaryButtonHeight:\s*56/);
+    assert.match(source, /primaryButtonHeight:\s*52/);
   });
 
   it('loads Overpass and applies it through the typography tokens', () => {
@@ -37,20 +37,20 @@ describe('Flexio Figma design system', () => {
     assert.match(navigator, /name="WorkoutSession"/);
   });
 
-  it('uses the Figma tab labels and purple navigation bar', () => {
+  it('uses the Figma tab labels and theme-aware navigation bar', () => {
     const tabs = read('app/navigation/MainTabNavigator.js');
 
     assert.match(tabs, /Activity/);
     assert.match(tabs, /Calendar/);
-    assert.match(tabs, /backgroundColor:\s*colors\.primary/);
-    assert.match(tabs, /tabBarActiveTintColor:\s*colors\.white/);
+    assert.match(tabs, /backgroundColor:\s*isDark \? colors\.surface : colors\.primary/);
+    assert.match(tabs, /tabBarActiveTintColor:\s*isDark \? colors\.accent : colors\.white/);
   });
 
   it('uses the exported Figma workout imagery on the home and timer screens', () => {
     const home = read('app/screens/user/HomeScreen.js');
     const session = read('app/screens/user/WorkoutSessionScreen.js');
 
-    assert.match(home, /assets\/images\/figma\/home-trainer\.png/);
+    assert.match(home, /assets\/images\/home\/training-coach-white\.png/);
     assert.match(home, /assets\/images\/figma\/warmup\.png/);
     assert.match(session, /assets\/images\/figma\/exercise-warmup\.png/);
   });

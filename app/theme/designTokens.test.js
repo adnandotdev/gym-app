@@ -18,8 +18,21 @@ describe('MuscleMap Figma-aligned design contracts', () => {
     assert.match(themeSource, /screen:\s*24/);
     assert.match(themeSource, /control:\s*12/);
     assert.match(themeSource, /card:\s*16/);
-    assert.match(themeSource, /primaryButtonHeight:\s*56/);
-    assert.match(themeSource, /tabBarHeight:\s*80/);
+    assert.match(themeSource, /primaryButtonHeight:\s*52/);
+    assert.match(themeSource, /tabBarHeight:\s*56/);
+  });
+
+  it('keeps the bottom navigation compact without dropping safe-area space', () => {
+    const tabs = read('app/navigation/MainTabNavigator.js');
+
+    assert.match(tabs, /useSafeAreaInsets/);
+    assert.match(tabs, /height:\s*componentSizes\.tabBarHeight \+ insets\.bottom/);
+    assert.match(tabs, /paddingBottom:\s*insets\.bottom \+ spacing\.micro/);
+    assert.match(tabs, /paddingTop:\s*spacing\.micro/);
+    assert.match(tabs, /tabBarItemStyle:\s*\{ minHeight:\s*44 \}/);
+    assert.match(tabs, /size=\{20\}/);
+    assert.match(tabs, /fontSize:\s*11/);
+    assert.match(tabs, /lineHeight:\s*14/);
   });
 
   it('keeps loading and disabled feedback accessible', () => {
@@ -46,9 +59,13 @@ describe('MuscleMap Figma-aligned design contracts', () => {
     assert.match(plan, /clearBtn:\s*\{[\s\S]*width:\s*44,[\s\S]*height:\s*44/);
   });
 
-  it('uses exact exported Figma imagery instead of remote temporary URLs', () => {
+  it('uses bundled home imagery instead of remote temporary URLs', () => {
     const home = read('app/screens/user/HomeScreen.js');
-    assert.match(home, /assets\/images\/figma\/home-trainer\.png/);
+    assert.match(home, /assets\/images\/home\/training-coach-white\.png/);
     assert.doesNotMatch(home, /figma\.com\/api\/mcp\/asset/);
+
+    const image = fs.readFileSync(path.join(ROOT, 'assets/images/home/training-coach-white.png'));
+    assert.equal(image.toString('ascii', 1, 4), 'PNG');
+    assert.equal(image[25], 6, 'The homepage coach must be a genuine RGBA cutout');
   });
 });

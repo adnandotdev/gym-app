@@ -1,9 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { spacing } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
+import BrandLogo from '../../components/BrandLogo';
 
 const OnboardingHeader = ({ currentStep, navigation, onBackPress }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   // Determine which of the 4 parts the current step belongs to
   const getPartForStep = (step) => {
     if (step <= 3) return 1;
@@ -28,13 +33,13 @@ const OnboardingHeader = ({ currentStep, navigation, onBackPress }) => {
       <View style={styles.navRow}>
         <View style={styles.backButtonContainer}>
           {currentStep > 1 && (
-            <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Previous step">
               <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           )}
         </View>
 
-        <Text style={styles.logoText}>MuscleMap</Text>
+        <BrandLogo />
 
         <View style={styles.placeholder} />
       </View>
@@ -67,11 +72,11 @@ const OnboardingHeader = ({ currentStep, navigation, onBackPress }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     backgroundColor: colors.canvas,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: spacing.micro,
+    paddingBottom: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.hairline,
   },
@@ -79,30 +84,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.screen,
     height: 48,
   },
   backButtonContainer: {
-    width: 40,
+    width: 44,
     alignItems: 'flex-start',
   },
   backButton: {
-    padding: 4,
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    letterSpacing: 0,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
   },
   placeholder: {
-    width: 40,
+    width: 44,
   },
   progressBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+    marginTop: spacing.micro,
   },
   segmentContainer: {
     marginHorizontal: 12,

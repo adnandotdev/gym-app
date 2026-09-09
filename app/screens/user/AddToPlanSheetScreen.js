@@ -6,8 +6,10 @@ import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import Button from '../../components/Button';
 import MotionPressable from '../../components/MotionPressable';
+import { useAppTheme } from '../../context/ThemeContext';
 import { useWorkoutPlan } from '../../context/WorkoutPlanContext';
-import { colors, componentSizes, radius, spacing, typography } from '../../theme/colors';
+import { componentSizes, radius, spacing, typography } from '../../theme/colors';
+import useThemedStyles from '../../theme/useThemedStyles';
 import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -21,6 +23,8 @@ const triggerHaptic = async (callback) => {
 };
 
 export default function AddToPlanSheetScreen({ route, navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { exercise } = route.params;
   const { addExercise } = useWorkoutPlan();
   const demonstration = resolveExerciseDemonstration(
@@ -101,7 +105,7 @@ export default function AddToPlanSheetScreen({ route, navigation }) {
           <Image
             source={demonstration.thumbnail}
             style={styles.exercisePreviewImage}
-            resizeMode="cover"
+            resizeMode="contain"
             accessible
             accessibilityLabel={`${exercise.name} male exercise demonstration`}
           />
@@ -151,7 +155,7 @@ export default function AddToPlanSheetScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -160,7 +164,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.hairline,
@@ -189,7 +193,8 @@ const styles = StyleSheet.create({
   },
   exercisePreview: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
+    alignItems: 'center',
     marginHorizontal: spacing.screen,
     marginTop: spacing.md,
     padding: spacing.sm,
@@ -199,7 +204,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
   },
   exercisePreviewImage: {
-    width: 112,
+    width: 96,
+    flexShrink: 0,
     aspectRatio: 4 / 3,
     borderRadius: radius.control,
     backgroundColor: colors.surface,
@@ -232,6 +238,7 @@ const styles = StyleSheet.create({
   },
   dayButton: {
     minHeight: componentSizes.primaryButtonHeight,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,6 +261,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.hairline,

@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MotionPressable from '../../components/MotionPressable';
 import { useWorkoutActivity } from '../../context/WorkoutActivityContext';
 import { useWorkoutPlan } from '../../context/WorkoutPlanContext';
+import { useAppTheme } from '../../context/ThemeContext';
 import { getRecordsForDate, getTodayName } from '../../domain/workoutSession';
-import { colors, radius, spacing, typography } from '../../theme/colors';
+import { radius, spacing, typography } from '../../theme/colors';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const formatDuration = (seconds) => {
   const minutes = Math.floor(seconds / 60);
@@ -15,6 +17,8 @@ const formatDuration = (seconds) => {
 };
 
 export default function ActivityScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { history, loading } = useWorkoutActivity();
   const { plan } = useWorkoutPlan();
   const todayName = getTodayName();
@@ -26,18 +30,18 @@ export default function ActivityScreen({ navigation }) {
       navigation.navigate('My Plan', { initialDay: todayName });
       return;
     }
-    navigation.navigate('WorkoutSession', { day: todayName, exercises: todayExercises, source: 'plan' });
+    navigation.navigate('WorkoutReadiness', { day: todayName, exercises: todayExercises, source: 'plan' });
   };
 
   const renderHistory = ({ item }) => (
     <View style={styles.historyCard}>
       <View style={styles.historyIcon}>
-        <Ionicons name={item.completedCount > 0 ? 'checkmark' : 'play-skip-forward'} size={20} color={colors.primary} />
+        <Ionicons name={item.completedCount + item.partialCount > 0 ? 'checkmark' : 'play-skip-forward'} size={20} color={colors.primary} />
       </View>
       <View style={styles.historyCopy}>
         <Text style={styles.historyTitle}>{item.day} workout</Text>
         <Text style={styles.historyMeta}>
-          {item.completedCount} completed · {item.skippedCount} skipped · {formatDuration(item.totalElapsedSeconds)}
+          {item.completedCount} completed · {item.partialCount} partial · {item.skippedCount} skipped · {formatDuration(item.totalElapsedSeconds)}
         </Text>
       </View>
     </View>
@@ -50,6 +54,7 @@ export default function ActivityScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         renderItem={renderHistory}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={(
           <>
             <Text style={styles.title}>Activity</Text>
@@ -57,7 +62,7 @@ export default function ActivityScreen({ navigation }) {
 
             <View style={styles.todayCard}>
               <View style={styles.todayHeader}>
-                <View>
+                <View style={styles.todayCopy}>
                   <Text style={styles.eyebrow}>TODAY · {todayName.toUpperCase()}</Text>
                   <Text style={styles.todayTitle}>{todayExercises.length} exercises planned</Text>
                   <Text style={styles.todayMeta}>{todayHistory.length} sessions recorded today</Text>
@@ -95,33 +100,34 @@ export default function ActivityScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: spacing.screen, paddingBottom: spacing.xl, gap: spacing.md },
+  content: { paddingHorizontal: spacing.screen, paddingTop: spacing.lg, paddingBottom: spacing.xl },
   title: { ...typography.displayLarge, color: colors.ink },
-  subtitle: { ...typography.body, color: colors.muted, marginTop: spacing.micro },
-  todayCard: { marginTop: spacing.lg, padding: spacing.lg, borderRadius: radius.card, backgroundColor: colors.primary },
-  todayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { ...typography.metaSmall, color: 'rgba(255,255,255,0.78)' },
-  todayTitle: { ...typography.cardTitle, color: colors.white, marginTop: spacing.micro },
-  todayMeta: { ...typography.caption, color: 'rgba(255,255,255,0.78)', marginTop: spacing.micro },
-  countCircle: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  countText: { ...typography.cardTitle, color: colors.white },
-  primaryAction: { minHeight: 48, borderRadius: radius.control, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md },
-  primaryActionText: { ...typography.action, color: colors.primary },
-  libraryAction: { minHeight: 96, borderRadius: radius.card, backgroundColor: colors.surfaceWarm, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
-  libraryIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  subtitle: { ...typography.caption, color: colors.muted, marginTop: spacing.micro },
+  todayCard: { marginTop: spacing.md, padding: spacing.md, borderRadius: radius.card, borderCurve: 'continuous', backgroundColor: colors.primary },
+  todayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  todayCopy: { flex: 1, minWidth: 0 },
+  eyebrow: { ...typography.metaSmall, color: colors.mutedOnPrimary },
+  todayTitle: { ...typography.cardTitle, color: colors.accentOnDark, marginTop: spacing.micro },
+  todayMeta: { ...typography.caption, color: colors.mutedOnPrimary, marginTop: spacing.micro },
+  countCircle: { width: 48, height: 48, flexShrink: 0, borderRadius: 24, borderWidth: 1, borderColor: colors.accentOnDark, alignItems: 'center', justifyContent: 'center' },
+  countText: { ...typography.cardTitle, color: colors.accentOnDark },
+  primaryAction: { minHeight: 48, borderRadius: radius.control, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, backgroundColor: colors.accentOnDark, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md },
+  primaryActionText: { ...typography.action, color: colors.primary, textAlign: 'center' },
+  libraryAction: { minHeight: 88, borderRadius: radius.card, borderCurve: 'continuous', backgroundColor: colors.surfaceWarm, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  libraryIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   libraryCopy: { flex: 1 },
   libraryTitle: { ...typography.cardTitle, color: colors.ink },
   libraryMeta: { ...typography.caption, color: colors.muted, marginTop: spacing.micro },
-  sectionTitle: { ...typography.cardTitle, color: colors.ink, marginTop: spacing.lg, marginBottom: spacing.xs },
-  historyCard: { minHeight: 78, backgroundColor: colors.surfaceWarm, borderRadius: radius.control, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
-  historyIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  sectionTitle: { ...typography.cardTitle, color: colors.ink, marginTop: spacing.lg, marginBottom: spacing.sm },
+  historyCard: { minHeight: 72, backgroundColor: colors.surfaceWarm, borderRadius: radius.control, borderCurve: 'continuous', padding: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  historyIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   historyCopy: { flex: 1 },
   historyTitle: { ...typography.action, color: colors.ink },
   historyMeta: { ...typography.caption, color: colors.muted, marginTop: spacing.micro },
   loader: { marginTop: spacing.xl },
-  emptyState: { alignItems: 'center', padding: spacing.xl, backgroundColor: colors.surfaceWarm, borderRadius: radius.card },
+  emptyState: { alignItems: 'center', padding: spacing.lg, backgroundColor: colors.surfaceWarm, borderRadius: radius.card, borderCurve: 'continuous' },
   emptyTitle: { ...typography.cardTitle, color: colors.ink, marginTop: spacing.md },
   emptyMeta: { ...typography.caption, color: colors.muted, textAlign: 'center', marginTop: spacing.xs },
 });

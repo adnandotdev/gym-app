@@ -4,20 +4,23 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  StatusBar
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import Button from '../../components/Button';
-import { colors, typography } from '../../theme/colors';
+import BrandLogo from '../../components/BrandLogo';
+import { typography, spacing, radius } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const RegisterScreen = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -183,7 +186,6 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
@@ -195,7 +197,7 @@ const RegisterScreen = ({ navigation }) => {
         >
           {/* Header section */}
           <View style={styles.header}>
-            <Text style={styles.title}>MuscleMap</Text>
+            <BrandLogo style={{ marginBottom: spacing.xs }} />
             <Text style={styles.subtitle}>Create an account and build a training plan that feels considered.</Text>
           </View>
 
@@ -403,7 +405,7 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.parchment,
@@ -414,28 +416,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingTop: spacing.screen,
+    paddingHorizontal: spacing.screen,
+    paddingBottom: spacing.screen,
   },
   header: {
-    marginBottom: 32,
+    marginBottom: spacing.screen,
     alignItems: 'center',
-  },
-  title: {
-    ...typography.screenTitle,
-    color: colors.ink,
-    marginBottom: 8,
   },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   form: {
     width: '100%',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   label: {
     ...typography.caption,
@@ -447,8 +445,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 0,
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
     backgroundColor: colors.surfaceWarm,
   },
   inputContainerFocused: {
@@ -461,8 +461,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Overpass_400Regular',
     fontSize: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    minHeight: 48,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     color: colors.textPrimary,
   },
   passwordInput: {
@@ -470,7 +471,8 @@ const styles = StyleSheet.create({
   },
   eyeIconContainer: {
     position: 'absolute',
-    right: 16,
+    right: 0,
+    width: 44,
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -510,9 +512,10 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 28,
+    marginTop: spacing.lg,
   },
   footerText: {
     color: colors.textSecondary,

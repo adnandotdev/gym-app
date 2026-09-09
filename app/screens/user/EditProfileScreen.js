@@ -2,12 +2,12 @@ import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StatusBar,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,9 @@ import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../utils/api';
 import Button from '../../components/Button';
-import { colors, spacing, radius, componentSizes, typography } from '../../theme/colors';
+import { spacing, radius, typography } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const GOAL_OPTIONS = ['Weight Loss', 'Muscle Build'];
 const LEVEL_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
@@ -26,6 +28,8 @@ const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'S
 const INJURIES_LIST = ['No injuries', 'Shoulders', 'Back', 'Waist', 'Wrist', 'Knee'];
 
 export default function EditProfileScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, updateUser } = useContext(AuthContext);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -139,7 +143,6 @@ export default function EditProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
         <TouchableOpacity
@@ -154,9 +157,10 @@ export default function EditProfileScreen({ navigation }) {
         <View style={styles.headerSpacer} />
       </View>
 
+      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -189,9 +193,9 @@ export default function EditProfileScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>Body Dimensions</Text>
           
-          <View style={styles.row}>
+          <View style={styles.measurementGroup}>
             {/* Age */}
-            <View style={[styles.inputContainer, { flex: 1 }]}>
+            <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Age</Text>
               <TextInput
                 style={styles.textInput}
@@ -202,7 +206,7 @@ export default function EditProfileScreen({ navigation }) {
             </View>
             
             {/* Gender Selection */}
-            <View style={[styles.inputContainer, { flex: 2 }]}>
+            <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Gender</Text>
               <View style={styles.pillRow}>
                 {GENDER_OPTIONS.map((g) => (
@@ -217,7 +221,7 @@ export default function EditProfileScreen({ navigation }) {
                     accessibilityState={{ checked: formData.gender === g }}
                   >
                     <Text style={[styles.pillText, formData.gender === g && styles.pillTextActive]}>
-                      {g === 'Prefer not to say' ? 'Other' : g}
+                      {g}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -423,13 +427,13 @@ export default function EditProfileScreen({ navigation }) {
 
           {/* Training Reminder Switch */}
           <View style={styles.switchRow}>
-            <View>
+            <View style={styles.switchCopy}>
               <Text style={styles.switchLabel}>Training Reminders</Text>
               <Text style={styles.switchSubtitle}>Get daily workout reminders</Text>
             </View>
             <Switch
               trackColor={{ false: colors.borderStrong, true: colors.recovery }}
-              thumbColor={formData.trainingReminder ? colors.ink : colors.muted}
+              thumbColor={formData.trainingReminder ? colors.white : colors.muted}
               ios_backgroundColor={colors.borderStrong}
               onValueChange={(val) => handleChange('trainingReminder', val)}
               value={formData.trainingReminder}
@@ -475,11 +479,12 @@ export default function EditProfileScreen({ navigation }) {
         </View>
 
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.canvas,
@@ -489,7 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.screen,
-    minHeight: 64,
+    minHeight: 56,
     backgroundColor: colors.canvas,
     borderBottomWidth: 1,
     borderBottomColor: colors.hairline,
@@ -509,29 +514,34 @@ const styles = StyleSheet.create({
     height: 44,
   },
   scrollContent: {
-    padding: spacing.screen,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.screen,
+  },
+  keyboardView: {
+    flex: 1,
   },
   section: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.hairline,
     borderRadius: radius.card,
-    padding: spacing.lg,
+    borderCurve: 'continuous',
+    padding: spacing.md,
+    gap: spacing.md,
     marginBottom: spacing.md,
   },
   sectionHeader: {
     ...typography.cardTitle,
     color: colors.textPrimary,
-    marginBottom: spacing.lg,
   },
   inputContainer: {
-    marginBottom: spacing.lg,
+    minWidth: 0,
   },
   inputLabel: {
     ...typography.caption,
     color: colors.mutedStrong,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.micro,
   },
   textInput: {
     backgroundColor: colors.surfaceWarm,
@@ -539,8 +549,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.control,
     color: colors.textPrimary,
-    paddingHorizontal: spacing.md,
-    height: componentSizes.primaryButtonHeight,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    minHeight: 48,
+    borderCurve: 'continuous',
+    fontFamily: typography.body.fontFamily,
     fontSize: typography.body.fontSize,
   },
   disabledInput: {
@@ -549,7 +562,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
@@ -558,6 +571,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
+  measurementGroup: {
+    gap: spacing.md,
+  },
   choicePillSmall: {
     backgroundColor: colors.surfaceWarm,
     borderColor: colors.border,
@@ -565,10 +581,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   choicePillActive: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   pillText: {
     color: colors.textSecondary,
@@ -576,7 +595,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pillTextActive: {
-    color: colors.textOnDark,
+    color: colors.accentOnDark,
   },
   unitToggle: {
     flexDirection: 'row',
@@ -584,16 +603,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
     borderWidth: 1,
     borderColor: colors.border,
-    height: componentSizes.primaryButtonHeight,
+    minHeight: 48,
     overflow: 'hidden',
   },
   unitBtn: {
     flex: 1,
+    minHeight: 46,
     justifyContent: 'center',
     alignItems: 'center',
   },
   unitBtnActive: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.primary,
   },
   unitText: {
     color: colors.textSecondary,
@@ -601,34 +621,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   unitTextActive: {
-    color: colors.textOnDark,
+    color: colors.accentOnDark,
   },
   choiceGroup: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   choiceCard: {
-    flex: 1,
-    minHeight: componentSizes.secondaryButtonHeight,
+    flexGrow: 1,
+    flexBasis: 88,
+    minHeight: 44,
     backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.control,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
   choiceCardActive: {
-    borderColor: colors.ink,
-    backgroundColor: colors.ink,
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
   choiceCardText: {
+    textAlign: 'center',
+    flexShrink: 1,
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: 'bold',
   },
   choiceCardTextActive: {
-    color: colors.textOnDark,
+    color: colors.accentOnDark,
   },
   checkboxGroup: {
     flexDirection: 'row',
@@ -643,7 +668,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.control,
-    padding: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    minHeight: 44,
     gap: spacing.xs,
   },
   checkboxCardActive: {
@@ -651,6 +678,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.recoverySoft,
   },
   checkboxLabel: {
+    flexShrink: 1,
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '500',
@@ -666,8 +694,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.hairline,
     borderRadius: radius.control,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  switchCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   switchLabel: {
     color: colors.textPrimary,
@@ -681,6 +713,6 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     marginTop: spacing.xs,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xs,
   },
 });

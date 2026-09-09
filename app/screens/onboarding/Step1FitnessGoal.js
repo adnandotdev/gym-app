@@ -1,12 +1,17 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
-import { colors, typography } from '../../theme/colors';
+import { typography, spacing } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const Step1FitnessGoal = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
   const selectedGoal = onboardingData.fitnessGoal;
 
@@ -18,11 +23,6 @@ const Step1FitnessGoal = ({ navigation }) => {
     if (selectedGoal) {
       navigation.navigate('Step2Gender');
     }
-  };
-
-  const goalImages = {
-    'Weight Loss': require('../../../assets/images/onboarding/goal-weight-loss.png'),
-    'Muscle Build': require('../../../assets/images/onboarding/goal-muscle-build.png'),
   };
 
   return (
@@ -45,11 +45,7 @@ const Step1FitnessGoal = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <View style={styles.goalImageFrame}>
-              <Image
-                source={goalImages['Weight Loss']}
-                style={styles.goalImage}
-                resizeMode="cover"
-              />
+              <Ionicons name="walk-outline" size={48} color={colors.primary} />
             </View>
             <Text style={styles.cardLabel}>Weight Loss</Text>
           </TouchableOpacity>
@@ -64,11 +60,7 @@ const Step1FitnessGoal = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <View style={styles.goalImageFrame}>
-              <Image
-                source={goalImages['Muscle Build']}
-                style={styles.goalImage}
-                resizeMode="cover"
-              />
+              <Ionicons name="barbell-outline" size={48} color={colors.primary} />
             </View>
             <Text style={styles.cardLabel}>Muscle Build</Text>
           </TouchableOpacity>
@@ -88,19 +80,19 @@ const Step1FitnessGoal = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.parchment,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 100,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   header: {
-    marginBottom: 36,
+    marginBottom: spacing.screen,
   },
   title: {
     ...typography.displayLarge,
@@ -121,10 +113,11 @@ const styles = StyleSheet.create({
   },
   goalCard: {
     width: '47%',
-    height: 180,
+    minHeight: 156,
     backgroundColor: colors.canvas,
     borderRadius: 12,
-    borderWidth: 2,
+    borderCurve: 'continuous',
+    borderWidth: 1,
     borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
@@ -133,19 +126,17 @@ const styles = StyleSheet.create({
   selectedGoalCard: {
     borderColor: colors.accent,
     backgroundColor: colors.goldLightest,
-    borderColor: colors.gold,
   },
   goalImageFrame: {
     width: '100%',
-    height: 108,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 12,
+    borderCurve: 'continuous',
     backgroundColor: colors.accentLight,
-    marginBottom: 16,
+    marginBottom: spacing.sm,
     overflow: 'hidden',
-  },
-  goalImage: {
-    width: '100%',
-    height: '100%',
   },
   cardLabel: {
     fontSize: 16,
@@ -154,12 +145,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flexShrink: 0,
     backgroundColor: colors.background,
-    paddingHorizontal: 28,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: colors.hairline,

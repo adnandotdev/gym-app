@@ -132,7 +132,7 @@ describe('male exercise demonstration imagery', () => {
     assert.equal(new Set(hashes).size, files.length, 'Every movement phase must be unique');
   });
 
-  it('rejects inserted uniform padding bands across committed demonstration imagery', () => {
+  it('rejects inserted padding bands and internal dividers across demonstration imagery', () => {
     const auditor = path.join(ROOT, 'scripts/auditExerciseImageFullBleed.swift');
     assert.equal(fs.existsSync(auditor), true, 'Missing pixel-level full-bleed auditor');
     const moduleCache = path.join(os.tmpdir(), 'exercise-audit-swift-cache');
@@ -229,6 +229,40 @@ describe('male exercise demonstration imagery', () => {
     assert.match(addToPlanSource, /demonstration\.thumbnail/);
   });
 
+  it('keeps exercise library cards compact and visually balanced', () => {
+    const librarySource = fs.readFileSync(
+      path.join(ROOT, 'app/screens/user/ExerciseLibraryScreen.js'),
+      'utf8',
+    );
+
+    assert.match(librarySource, /card:\s*\{[\s\S]*?padding: spacing\.sm/);
+    assert.match(librarySource, /cardImageFrame:\s*\{[\s\S]*?width: 96,[\s\S]*?height: 72/);
+    assert.match(librarySource, /resizeMode="contain"/);
+    assert.doesNotMatch(librarySource, /resizeMode=\{demonstration \? 'cover' : 'contain'\}/);
+    assert.match(librarySource, /card:\s*\{[\s\S]*?minHeight: 96/);
+    assert.match(librarySource, /cardContent:\s*\{[\s\S]*?minHeight: 72/);
+    assert.match(
+      librarySource,
+      /style=\{styles\.cardTitle\} numberOfLines=\{2\} ellipsizeMode="tail"/,
+    );
+    assert.match(
+      librarySource,
+      /style=\{styles\.cardMuscle\} numberOfLines=\{1\} ellipsizeMode="tail"/,
+    );
+    assert.match(
+      librarySource,
+      /style=\{styles\.cardMetaText\} numberOfLines=\{1\} ellipsizeMode="tail"/,
+    );
+    assert.match(
+      librarySource,
+      /\{item\.equipment\} · \{item\.difficulty\} · \{item\.sets\}×\{item\.reps\}/,
+    );
+    assert.doesNotMatch(librarySource, /styles\.cardTagsRow|styles\.tag\b|styles\.tagText/);
+    assert.match(librarySource, /accessibilityHint="Opens exercise instructions and variations"/);
+    assert.match(librarySource, /accessible=\{false\}/);
+    assert.match(librarySource, /importantForAccessibility="no"/);
+  });
+
   it('provides accessible start and finish controls without mixing in anatomy overlays', () => {
     const source = fs.readFileSync(
       path.join(ROOT, 'app/components/ExerciseDemonstrationViewer.js'),
@@ -239,7 +273,7 @@ describe('male exercise demonstration imagery', () => {
     assert.match(source, /accessibilityState=\{\{ selected:/);
     assert.match(source, /Start position/);
     assert.match(source, /Finish position/);
-    assert.match(source, /resizeMode="cover"/);
+    assert.match(source, /resizeMode="contain"/);
     assert.doesNotMatch(source, /primaryMuscles|secondaryMuscles|highlight/);
   });
 });

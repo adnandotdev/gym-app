@@ -1,14 +1,16 @@
 import React, { useContext, useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import { spacing } from '../../theme/colors';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const ITEM_HEIGHT = 60;
-const { width } = Dimensions.get('window');
 
 const Step4Age = ({ navigation }) => {
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
   const selectedAge = onboardingData.age;
   
@@ -22,18 +24,17 @@ const Step4Age = ({ navigation }) => {
   }
 
   // Prepend and append empty elements for visual padding so first and last numbers can align to center
-  const data = [null, null, null, ...numbers, null, null, null];
+  const data = [null, null, ...numbers, null, null];
 
-  // Map local age to data index. Since there are 3 padding items:
-  // index = age - 10 + 3
-  const getIndexForAge = (age) => age - 10 + 3;
+  // Two padding items center the selection in the five-row viewport.
+  const getIndexForAge = (age) => age - 10 + 2;
 
   useEffect(() => {
     // Scroll to default or previously selected age after component mounts
     const timer = setTimeout(() => {
       const idx = getIndexForAge(localAge);
       flatListRef.current?.scrollToOffset({
-        offset: (idx - 3) * ITEM_HEIGHT,
+        offset: (idx - 2) * ITEM_HEIGHT,
         animated: false,
       });
     }, 100);
@@ -141,37 +142,37 @@ const Step4Age = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
     alignItems: 'center',
   },
   header: {
-    marginBottom: 48,
+    marginBottom: spacing.screen,
     width: '100%',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#82786A',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   pickerWrapper: {
-    height: ITEM_HEIGHT * 7, // Show 7 items at a time
-    width: width - 56,
+    height: ITEM_HEIGHT * 5,
+    width: '100%',
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
@@ -180,10 +181,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: ITEM_HEIGHT + 10,
     width: '100%',
-    backgroundColor: '#F4E3C9',
+    backgroundColor: colors.primarySoft,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#2F4A3C',
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.primary,
     zIndex: 1,
   },
   flatList: {
@@ -209,44 +211,41 @@ const styles = StyleSheet.create({
   selectedText: {
     fontSize: 44,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
   },
   unitLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#C27A2C',
+    color: colors.primary,
     marginLeft: 8,
   },
   fadedTextLevel1: {
     fontSize: 26,
     fontWeight: '600',
-    color: '#A79F92',
+    color: colors.muted,
   },
   fadedTextLevel2: {
     fontSize: 20,
     fontWeight: '500',
-    color: '#A79B88',
+    color: colors.muted,
   },
   fadedTextLevel3: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#CFC4B3',
+    color: colors.border,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
+    flexShrink: 0,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
+    borderTopColor: colors.hairline,
     zIndex: 10,
   },
   continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
+    backgroundColor: colors.primary,
+    shadowColor: colors.ink,
   },
 });
 

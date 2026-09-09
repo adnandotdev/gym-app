@@ -1,24 +1,26 @@
 {
   "expo": {
-    "name": "MuscleMap",
+    "name": "LiftSutra",
     "slug": "musclemap",
     "version": "1.0.0",
     "sdkVersion": "57.0.0",
     "description": "Your personal gym companion — visualize muscles, plan workouts, track progress.",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/branding/liftsutra-icon.png",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/branding/liftsutra-adaptive.png",
         "backgroundColor": "#FFFFFF"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/branding/liftsutra-favicon.png",
+      "name": "LiftSutra",
+      "shortName": "LiftSutra"
     },
     "plugins": [
       "expo-font",

@@ -1,53 +1,45 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import OnboardingFocusModel from '../../components/OnboardingFocusModel';
+import { radius, spacing, typography } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
-const Step10FocusAreas = ({ navigation }) => {
+const FOCUS_OPTIONS = [
+  { id: 'Chest', label: 'Chest' }, { id: 'Back', label: 'Back' },
+  { id: 'Arms', label: 'Arms' }, { id: 'Abs', label: 'Abs' },
+  { id: 'Glutes', label: 'Glutes' }, { id: 'Legs', label: 'Legs' },
+  { id: 'Full Body', label: 'Full body' },
+];
+
+const normalizeFocusAreas = (areas = []) => {
+  const validIds = FOCUS_OPTIONS.map((option) => option.id);
+  const normalized = areas
+    .map((area) => (area === 'Leg' ? 'Legs' : area))
+    .filter((area) => validIds.includes(area));
+
+  if (normalized.includes('Full Body')) return ['Full Body'];
+  return [...new Set(normalized)];
+};
+
+export default function Step10FocusAreas({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
-  
-  const [selectedAreas, setSelectedAreas] = useState(onboardingData.focusAreas || []);
-
-  const focusOptions = [
-    { id: 'Chest', label: 'Chest', segment: 'chest' },
-    { id: 'Back', label: 'Back', segment: 'back' },
-    { id: 'Arms', label: 'Arms', segment: 'arms' },
-    { id: 'Abs', label: 'Abs', segment: 'abs' },
-    { id: 'Glutes', label: 'Glutes', segment: 'glutes' },
-    { id: 'Leg', label: 'Legs', segment: 'legs' },
-    { id: 'Full Body', label: 'Full Body', segment: 'full' },
-  ];
-
-  const overlayImages = [
-    { id: 'Chest', source: require('../../../assets/images/anatomy/highlight-chest.png') },
-    { id: 'Back', source: require('../../../assets/images/anatomy/highlight-back.png') },
-    { id: 'Arms', source: require('../../../assets/images/anatomy/highlight-arms.png') },
-    { id: 'Abs', source: require('../../../assets/images/anatomy/highlight-abs.png') },
-    { id: 'Glutes', source: require('../../../assets/images/anatomy/highlight-glutes.png') },
-    { id: 'Leg', source: require('../../../assets/images/anatomy/highlight-legs.png') },
-  ];
+  const [selectedAreas, setSelectedAreas] = useState(() => normalizeFocusAreas(onboardingData.focusAreas));
 
   const handleSelectArea = (areaId) => {
-    let updated;
-    if (areaId === 'Full Body') {
-      // Selecting Full Body toggles everything or resets others
-      if (selectedAreas.includes('Full Body')) {
-        updated = [];
-      } else {
-        updated = ['Full Body'];
-      }
-    } else {
-      // Toggle individual focus area, remove "Full Body" if present
-      const filterFull = selectedAreas.filter((a) => a !== 'Full Body');
-      if (selectedAreas.includes(areaId)) {
-        updated = filterFull.filter((a) => a !== areaId);
-      } else {
-        updated = [...filterFull, areaId];
-      }
-    }
-    setSelectedAreas(updated);
+    setSelectedAreas((current) => {
+      if (areaId === 'Full Body') return current.includes(areaId) ? [] : ['Full Body'];
+      const withoutFullBody = current.filter((area) => area !== 'Full Body');
+      return withoutFullBody.includes(areaId)
+        ? withoutFullBody.filter((area) => area !== areaId)
+        : [...withoutFullBody, areaId];
+    });
   };
 
   const handleContinue = () => {
@@ -61,63 +53,33 @@ const Step10FocusAreas = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Which areas do you want to focus on?</Text>
-          <Text style={styles.subtitle}>Select the target area for more accurate recommendations</Text>
+          <Text style={styles.subtitle}>Select one or more areas for more relevant workout suggestions.</Text>
         </View>
-
         <View style={styles.splitRow}>
-          {/* Left: Human Body Silhouette Model */}
-          <View style={styles.bodyColumn}>
+          <View
+            style={styles.bodyColumn}
+          >
             <View style={styles.modelContainer}>
-              <Image
-                source={require('../../../assets/images/anatomy/body-map-front-base.png')}
-                style={styles.bodyMapImage}
-                resizeMode="contain"
-              />
-              {selectedAreas.includes('Full Body') ? (
-                <Image
-                  source={require('../../../assets/images/anatomy/highlight-full-body.png')}
-                  style={styles.bodyMapOverlay}
-                  resizeMode="contain"
-                />
-              ) : (
-                overlayImages.map((overlay) =>
-                  selectedAreas.includes(overlay.id) ? (
-                    <Image
-                      key={overlay.id}
-                      source={overlay.source}
-                      style={styles.bodyMapOverlay}
-                      resizeMode="contain"
-                    />
-                  ) : null
-                )
-              )}
+              <OnboardingFocusModel gender={onboardingData.gender} selectedAreas={selectedAreas} />
             </View>
           </View>
 
-          {/* Connective dotted lines space is simulated natively via row layout lines */}
-
-          {/* Right: Selectable Pills */}
           <View style={styles.pillsColumn}>
-            {focusOptions.map((opt) => {
-              const isSelected = selectedAreas.includes(opt.id);
+            {FOCUS_OPTIONS.map((option) => {
+              const selected = selectedAreas.includes(option.id);
               return (
-                <View key={opt.id} style={styles.pillContainer}>
-                  {/* Dotted lines connector */}
+                <View key={option.id} style={styles.pillContainer}>
                   <View style={styles.dottedConnector} />
-
                   <TouchableOpacity
-                    style={[
-                      styles.pillButton,
-                      isSelected && styles.pillButtonActive,
-                    ]}
-                    onPress={() => handleSelectArea(opt.id)}
+                    style={[styles.pillButton, selected && styles.pillButtonActive]}
+                    onPress={() => handleSelectArea(option.id)}
                     activeOpacity={0.8}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={option.label}
                   >
-                    <Text style={[
-                      styles.pillLabel,
-                      isSelected && styles.pillLabelActive,
-                    ]}>
-                      {opt.label}
+                    <Text style={[styles.pillLabel, selected && styles.pillLabelActive]}>
+                      {option.label}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -126,143 +88,26 @@ const Step10FocusAreas = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
-
-      {/* Continue button at bottom */}
-      <View style={styles.footer}>
-        <Button
-          title="CONTINUE"
-          onPress={handleContinue}
-          disabled={selectedAreas.length === 0}
-          style={styles.continueButton}
-        />
-      </View>
+      <View style={styles.footer}><Button title="CONTINUE" onPress={handleContinue} disabled={selectedAreas.length === 0} /></View>
     </SafeAreaView>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFCF5',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 100,
-  },
-  header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#17140F',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#82786A',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  splitRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    width: '100%',
-    flex: 1,
-  },
-  bodyColumn: {
-    width: '40%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 20,
-  },
-  modelContainer: {
-    width: '100%',
-    alignItems: 'center',
-    backgroundColor: '#F0E9DC',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#CFC4B3',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-  },
-  bodyMapImage: {
-    width: 112,
-    height: 180,
-  },
-  bodyMapOverlay: {
-    position: 'absolute',
-    width: 112,
-    height: 180,
-  },
-  pillsColumn: {
-    width: '56%',
-    justifyContent: 'flex-start',
-  },
-  pillContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    width: '100%',
-  },
-  dottedConnector: {
-    flex: 1,
-    height: 1,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#A79B88',
-    borderRadius: 1,
-    marginRight: 8,
-  },
-  pillButton: {
-    width: '80%',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: '#CFC4B3',
-    backgroundColor: '#F0E9DC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  pillButtonActive: {
-    backgroundColor: '#2F4A3C',
-    borderColor: '#2F4A3C',
-  },
-  pillLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#82786A',
-  },
-  pillLabelActive: {
-    color: '#17140F',
-    fontWeight: '700',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
-    zIndex: 10,
-  },
-  continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
-  },
+const createStyles = (colors) => ({
+  container: { flex: 1, backgroundColor: colors.canvas },
+  scrollContent: { flexGrow: 1, paddingHorizontal: spacing.screen, paddingTop: spacing.lg, paddingBottom: spacing.lg },
+  header: { gap: spacing.xs, marginBottom: spacing.md },
+  title: { ...typography.screenTitle, color: colors.ink, textAlign: 'center' },
+  subtitle: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
+  splitRow: { flex: 1, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  bodyColumn: { width: '44%', alignItems: 'center', justifyContent: 'center' },
+  modelContainer: { width: '100%', padding: spacing.xs, backgroundColor: colors.surfaceWarm, borderRadius: radius.card, borderCurve: 'continuous', borderWidth: 1, borderColor: colors.border },
+  pillsColumn: { width: '53%', justifyContent: 'center' },
+  pillContainer: { width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
+  dottedConnector: { flex: 1, height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: colors.borderStrong, marginRight: spacing.xs },
+  pillButton: { width: '78%', minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceWarm, borderRadius: radius.control, borderCurve: 'continuous' },
+  pillButtonActive: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },
+  pillLabel: { ...typography.caption, fontFamily: typography.cardTitle.fontFamily, color: colors.textSecondary, textAlign: 'center' },
+  pillLabelActive: { color: colors.danger },
+  footer: { flexShrink: 0, backgroundColor: colors.canvas, paddingHorizontal: spacing.screen, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.hairline },
 });
-
-export default Step10FocusAreas;

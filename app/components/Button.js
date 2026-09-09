@@ -1,9 +1,13 @@
 import React from 'react';
-import { Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors, typography, radius, componentSizes, spacing } from '../theme/colors';
+import { Text, ActivityIndicator } from 'react-native';
+import { typography, radius, componentSizes, spacing } from '../theme/colors';
+import { useAppTheme } from '../context/ThemeContext';
+import useThemedStyles from '../theme/useThemedStyles';
 import MotionPressable from './MotionPressable';
 
 const Button = ({ title, onPress, loading, disabled, style, textStyle }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const isButtonDisabled = loading || disabled;
   
   return (
@@ -19,7 +23,7 @@ const Button = ({ title, onPress, loading, disabled, style, textStyle }) => {
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={colors.white} />
+        <ActivityIndicator size="small" color={colors.accentOnDark} />
       ) : (
         <Text style={[styles.text, textStyle, isButtonDisabled && styles.textDisabled]}>{title}</Text>
       )}
@@ -27,7 +31,7 @@ const Button = ({ title, onPress, loading, disabled, style, textStyle }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   button: {
     backgroundColor: colors.primary,
     borderRadius: radius.control,
@@ -35,15 +39,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     width: '100%',
-    marginVertical: spacing.xs,
   },
   buttonDisabled: {
     backgroundColor: colors.disabledBg,
   },
   text: {
     ...typography.action,
-    color: colors.white,
+    color: colors.accentOnDark,
+    textAlign: 'center',
   },
   textDisabled: {
     color: colors.disabledText,

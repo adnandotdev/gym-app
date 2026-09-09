@@ -1,15 +1,18 @@
 import React, { useContext, useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import { spacing } from '../../theme/colors';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const TICK_INTERVAL = 12; // vertical height of each tick item in pixels
 const RULER_HEIGHT = 320; // total height of the visible ruler list container
 const RULER_PADDING = RULER_HEIGHT / 2; // offset to align the center pointer
 
 const Step5Height = ({ navigation }) => {
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
   const flatListRef = useRef(null);
 
@@ -220,15 +223,15 @@ const Step5Height = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
   },
   header: {
     marginBottom: 24,
@@ -236,75 +239,76 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#82786A',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   toggleContainer: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: '#E2D8C8',
+    backgroundColor: colors.hairline,
     borderRadius: 24,
     padding: 4,
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: '#CFC4B3',
+    borderColor: colors.border,
   },
   togglePill: {
     paddingVertical: 8,
     paddingHorizontal: 24,
     borderRadius: 20,
+    borderCurve: 'continuous',
   },
   togglePillActive: {
-    backgroundColor: '#2F4A3C',
+    backgroundColor: colors.primarySoft,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#82786A',
+    color: colors.textSecondary,
   },
   toggleTextActive: {
-    color: '#17140F',
+    color: colors.ink,
   },
   interactiveArea: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 80,
+    paddingBottom: spacing.md,
   },
   displayCard: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 24,
-    padding: 24,
+    padding: spacing.sm,
     height: 180,
-    marginRight: 28,
-    borderWidth: 2,
-    borderColor: '#CFC4B3',
-    shadowColor: '#000',
+    marginRight: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   displayNumber: {
-    fontSize: 54,
+    fontSize: 40,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
   },
   displayUnit: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#C27A2C',
+    color: colors.primary,
     marginTop: 4,
     letterSpacing: 1,
   },
@@ -312,10 +316,11 @@ const styles = StyleSheet.create({
     width: 110,
     height: RULER_HEIGHT,
     position: 'relative',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 20,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: '#CFC4B3',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   rulerList: {
@@ -335,7 +340,7 @@ const styles = StyleSheet.create({
   pointerLine: {
     flex: 1,
     height: 3,
-    backgroundColor: '#2F4A3C',
+    backgroundColor: colors.primarySoft,
   },
   pointerTriangle: {
     width: 0,
@@ -345,7 +350,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 8,
     borderTopWidth: 5,
     borderBottomWidth: 5,
-    borderLeftColor: '#2F4A3C',
+    borderLeftColor: colors.primary,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
     marginLeft: -1,
@@ -358,40 +363,37 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
   tickLine: {
-    backgroundColor: '#A79F92',
+    backgroundColor: colors.muted,
     marginRight: 12,
   },
   tickLineMajor: {
     width: 28,
     height: 2,
-    backgroundColor: '#17140F',
+    backgroundColor: colors.ink,
   },
   tickLineMinor: {
     width: 14,
     height: 1,
-    backgroundColor: '#A79B88',
+    backgroundColor: colors.muted,
   },
   tickLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#514B43',
+    color: colors.textSecondary,
     width: 44,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
+    flexShrink: 0,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
+    borderTopColor: colors.hairline,
     zIndex: 10,
   },
   continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
+    backgroundColor: colors.primary,
+    shadowColor: colors.ink,
   },
 });
 

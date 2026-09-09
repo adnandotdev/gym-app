@@ -1,25 +1,33 @@
 import React, { useContext, useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import { spacing } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const TICK_WIDTH = 10;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const RULER_PADDING = SCREEN_WIDTH / 2;
+const kgToLb = (kg) => Math.round(kg / 0.45359237);
+const lbToKg = (lb) => Math.round(lb * 0.45359237);
 
 const Step9TargetWeight = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
   const flatListRef = useRef(null);
 
   const unit = onboardingData.weightUnit || 'kg';
-  const currentWeight = onboardingData.currentWeight || 70;
-  const [localTargetWeightKg, setLocalTargetWeightKg] = useState(onboardingData.targetWeight || currentWeight);
-
-  // Conversion helpers
-  const kgToLb = (kg) => Math.round(kg / 0.45359237);
-  const lbToKg = (lb) => Math.round(lb * 0.45359237);
+  const storedCurrentWeight = Number(onboardingData.currentWeight) || 70;
+  const currentWeightKg = unit === 'lb' ? lbToKg(storedCurrentWeight) : storedCurrentWeight;
+  const [localTargetWeightKg, setLocalTargetWeightKg] = useState(() => {
+    const storedTargetWeight = Number(onboardingData.targetWeight);
+    if (!storedTargetWeight) return currentWeightKg;
+    return unit === 'lb' ? lbToKg(storedTargetWeight) : storedTargetWeight;
+  });
 
   const minKg = 30;
   const maxKg = 200;
@@ -81,12 +89,12 @@ const Step9TargetWeight = ({ navigation }) => {
 
   // Dynamic weight diff calculations
   const calculateInsight = () => {
-    const diff = localTargetWeightKg - currentWeight;
+    const diff = localTargetWeightKg - currentWeightKg;
     const absDiff = Math.abs(diff);
     
     let percent = 0;
-    if (currentWeight > 0) {
-      percent = Math.round((absDiff / currentWeight) * 100);
+    if (currentWeightKg > 0) {
+      percent = Math.round((absDiff / currentWeightKg) * 100);
     }
 
     const displayDiff = unit === 'kg' ? absDiff : Math.round(absDiff / 0.45359237);
@@ -109,7 +117,7 @@ const Step9TargetWeight = ({ navigation }) => {
       return {
         title: 'Maintain Weight',
         subtitle: "You're at your perfect target! Let's work on body conditioning and stamina! ⚡",
-        color: '#2F4A3C', // Yellow
+        color: colors.primary, // Yellow
         emoji: '👌',
       };
     }
@@ -118,7 +126,7 @@ const Step9TargetWeight = ({ navigation }) => {
   const insight = calculateInsight();
 
   const handleContinue = () => {
-    updateField('targetWeight', localTargetWeightKg);
+    updateField('targetWeight', unit === 'kg' ? localTargetWeightKg : kgToLb(localTargetWeightKg));
     navigation.navigate('Step10FocusAreas');
   };
 
@@ -141,7 +149,7 @@ const Step9TargetWeight = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <OnboardingHeader currentStep={9} navigation={navigation} />
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Your target weight</Text>
         </View>
@@ -186,7 +194,7 @@ const Step9TargetWeight = ({ navigation }) => {
           </View>
           <Text style={styles.insightSubtitle}>{insight.subtitle}</Text>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Continue button at bottom */}
       <View style={styles.footer}>
@@ -200,15 +208,16 @@ const Step9TargetWeight = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
+    flexGrow: 1,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
     alignItems: 'center',
   },
   header: {
@@ -218,13 +227,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     textAlign: 'center',
   },
   unitDisplay: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#A79F92',
+    color: colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 20,
@@ -238,23 +247,23 @@ const styles = StyleSheet.create({
   weightText: {
     fontSize: 64,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
   },
   weightUnitText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#C27A2C',
+    color: colors.primary,
     marginLeft: 8,
   },
   rulerOuter: {
     width: SCREEN_WIDTH,
     height: 70,
     position: 'relative',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#CFC4B3',
-    marginBottom: 36,
+    borderColor: colors.border,
+    marginBottom: spacing.screen,
   },
   centerIndicator: {
     position: 'absolute',
@@ -262,7 +271,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: '#2F4A3C',
+    backgroundColor: colors.primary,
     zIndex: 10,
     pointerEvents: 'none',
   },
@@ -276,32 +285,33 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   tickLine: {
-    backgroundColor: '#A79F92',
+    backgroundColor: colors.muted,
     marginBottom: 8,
   },
   tickLineMajor: {
     width: 2,
     height: 24,
-    backgroundColor: '#17140F',
+    backgroundColor: colors.ink,
   },
   tickLineMinor: {
     width: 1,
     height: 12,
-    backgroundColor: '#A79B88',
+    backgroundColor: colors.muted,
   },
   tickLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#82786A',
+    color: colors.textSecondary,
   },
   insightCard: {
     width: '100%',
-    backgroundColor: '#F4E3C9',
+    backgroundColor: colors.primarySoft,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#E6BE86',
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.primarySoft,
     padding: 20,
-    shadowColor: '#2F4A3C',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -321,7 +331,7 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     flex: 1,
   },
   emoji: {
@@ -329,25 +339,22 @@ const styles = StyleSheet.create({
   },
   insightSubtitle: {
     fontSize: 14,
-    color: '#514B43',
+    color: colors.textSecondary,
     lineHeight: 20,
     fontWeight: '500',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
+    flexShrink: 0,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
+    borderTopColor: colors.hairline,
     zIndex: 10,
   },
   continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
+    backgroundColor: colors.primary,
+    shadowColor: colors.ink,
   },
 });
 

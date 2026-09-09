@@ -1,18 +1,20 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { FlatList, Image, TextInput, StatusBar, View, Text, StyleSheet } from 'react-native';
+import { FlatList, Image, TextInput, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import { exercises } from '../../data/exercises';
-import { colors, typography, spacing, radius, componentSizes } from '../../theme/colors';
+import { typography, spacing, radius } from '../../theme/colors';
 import { AuthContext } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
 import { resolveExerciseAnatomyImage } from '../../data/exerciseAnatomyImages';
 import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 import MotionPressable from '../../components/MotionPressable';
+import useThemedStyles from '../../theme/useThemedStyles';
+import { CANONICAL_EQUIPMENT, normalizeEquipmentAlias } from '../../data/taxonomies';
 import { getCategoryById, getCategoryExercises } from '../../data/workoutCategories';
 import {
-  getDefaultVariation,
   getExerciseVariations,
   getVariationCount,
 } from '../../data/exerciseVariations';
@@ -21,9 +23,12 @@ const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Abs', 'Legs
 const EXERCISE_LAYOUT = LinearTransition.duration(180).reduceMotion(ReduceMotion.System);
 
 export default function ExerciseLibraryScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState(route?.params?.initialMuscle || 'All');
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null);
   const [activeCategoryId, setActiveCategoryId] = useState(route?.params?.initialCategoryId || null);
   const activeCategory = getCategoryById(activeCategoryId);
   const categoryExercises = useMemo(
@@ -57,7 +62,12 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
       ex.name.toLowerCase().includes(normalizedQuery) ||
       variationSearchText.includes(normalizedQuery);
     const matchesMuscle = selectedMuscle === 'All' || ex.muscleGroup === selectedMuscle;
-    return matchesSearch && matchesMuscle;
+
+    // F05: Ensure strict equipment matching using canonical taxonomies
+    const normalizedEq = normalizeEquipmentAlias(ex.equipment);
+    const matchesEquipment = !selectedEquipmentId || normalizedEq === selectedEquipmentId;
+
+    return matchesSearch && matchesMuscle && matchesEquipment;
   });
 
   const selectMuscle = (muscle) => {
@@ -68,6 +78,16 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
       console.warn('Haptic feedback was unavailable.', error);
     });
   };
+
+  const selectEquipment = (equipmentId) => {
+    if (equipmentId === selectedEquipmentId) return;
+    setSelectedEquipmentId(equipmentId);
+    void Haptics.selectionAsync().catch((error) => {
+      console.warn('Haptic feedback was unavailable.', error);
+    });
+  };
+
+  const equipmentOptions = useMemo(() => [{ id: null, name: 'Any Equipment' }, ...CANONICAL_EQUIPMENT], []);
 
   const renderFilterPill = ({ item }) => (
     <MotionPressable
@@ -90,40 +110,57 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
     </MotionPressable>
   );
 
+  const renderEquipmentPill = ({ item }) => (
+    <MotionPressable
+      style={[
+        styles.filterPill,
+        selectedEquipmentId === item.id && styles.filterPillActive,
+      ]}
+      onPress={() => selectEquipment(item.id)}
+      accessibilityRole="button"
+      accessibilityState={{ selected: selectedEquipmentId === item.id }}
+    >
+      <Text
+        style={[
+          styles.filterPillText,
+          selectedEquipmentId === item.id && styles.filterPillTextActive,
+        ]}
+      >
+        {item.name}
+      </Text>
+    </MotionPressable>
+  );
+
   const renderExerciseCard = ({ item }) => {
     const familyId = item.exerciseFamilyId || item.id;
-    const selectedVariation = item.exerciseVariantId
-      ? getExerciseVariations(familyId).find((variation) => variation.id === item.exerciseVariantId)
-      : getDefaultVariation(familyId);
-    const defaultVariation = selectedVariation || getDefaultVariation(familyId);
     const demonstration = resolveExerciseDemonstration(item.exerciseVariantId, familyId, 'male');
     const thumbnailSource = demonstration
       ? demonstration.thumbnail
       : resolveExerciseAnatomyImage(item.id, user?.gender, 'front');
     const variationCount = getVariationCount(familyId);
+    const targetLabel = /[a-z]/i.test(String(item.reps)) ? item.reps : `${item.reps} reps`;
 
     return (
       <MotionPressable
         style={styles.card}
         onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
         accessibilityRole="button"
-        accessibilityLabel={`${item.name}. ${variationCount} variations. ${item.muscleGroup}.`}
+        accessibilityLabel={`${item.name}. ${item.muscleGroup}. ${variationCount} variations. Equipment: ${item.equipment}. ${item.difficulty}. ${item.sets} sets of ${targetLabel}.`}
+        accessibilityHint="Opens exercise instructions and variations"
       >
         <View style={styles.cardImageFrame}>
           <Image
             source={thumbnailSource}
             style={styles.cardImage}
-            resizeMode={demonstration ? 'cover' : 'contain'}
-            accessible
-            accessibilityLabel={demonstration
-              ? `${defaultVariation.name} male exercise demonstration`
-              : `${item.name} front muscle target preview`}
+            resizeMode="contain"
+            accessible={false}
+            importantForAccessibility="no"
           />
         </View>
-      
+
         <View style={styles.cardContent}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardTitle} numberOfLines={2} ellipsizeMode="tail">{item.name}</Text>
             <Ionicons
               name="chevron-forward"
               size={20}
@@ -131,21 +168,15 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
               style={styles.cardChevron}
             />
           </View>
-          <Text style={styles.cardMuscle}>{item.muscleGroup} · {variationCount} variations</Text>
+          <Text style={styles.cardMuscle} numberOfLines={1} ellipsizeMode="tail">
+            {item.muscleGroup} · {variationCount} variations
+          </Text>
 
-          <View style={styles.cardTagsRow}>
-            <View style={styles.tag}>
-              <Ionicons name="fitness-outline" size={14} color={colors.accent} />
-              <Text style={[styles.tagText, { color: colors.accent }]}>{item.equipment}</Text>
-            </View>
-            <View style={styles.tag}>
-              <Ionicons name="speedometer-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.tagText}>{item.difficulty}</Text>
-            </View>
-            <View style={styles.tag}>
-              <Ionicons name="repeat-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.tagText}>{item.sets}x{item.reps}</Text>
-            </View>
+          <View style={styles.cardMetaRow}>
+            <Ionicons name="fitness-outline" size={14} color={colors.accent} />
+            <Text style={styles.cardMetaText} numberOfLines={1} ellipsizeMode="tail">
+              {item.equipment} · {item.difficulty} · {item.sets}×{item.reps}
+            </Text>
           </View>
         </View>
       </MotionPressable>
@@ -153,11 +184,22 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{activeCategory?.title || 'Exercise Library'}</Text>
-        <Text style={styles.headerCopy}>{activeCategory?.description || 'Find the right movement for today’s workout.'}</Text>
+        {navigation.canGoBack() ? (
+          <MotionPressable
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.ink} />
+          </MotionPressable>
+        ) : null}
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>{activeCategory?.title || 'Exercise Library'}</Text>
+          <Text style={styles.headerCopy}>{activeCategory?.description || 'Find the right movement for today’s workout.'}</Text>
+        </View>
       </View>
 
       {activeCategory ? (
@@ -186,6 +228,9 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          accessibilityLabel="Search exercises"
+          returnKeyType="search"
+          autoCorrect={false}
         />
         {searchQuery.length > 0 && (
           <MotionPressable
@@ -207,7 +252,19 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item}
           renderItem={renderFilterPill}
-          contentContainerStyle={{ paddingHorizontal: spacing.screen }}
+          style={styles.filterRow}
+          contentContainerStyle={styles.filterRowContent}
+          keyboardShouldPersistTaps="handled"
+        />
+        <FlatList
+          data={equipmentOptions}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.id || 'any'}
+          renderItem={renderEquipmentPill}
+          style={styles.filterRow}
+          contentContainerStyle={styles.filterRowContent}
+          keyboardShouldPersistTaps="handled"
         />
       </View>
 
@@ -217,7 +274,10 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
         keyExtractor={(item) => item.id}
         renderItem={renderExerciseCard}
         itemLayoutAnimation={EXERCISE_LAYOUT}
+        style={styles.resultsList}
         contentContainerStyle={styles.listContent}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -232,17 +292,22 @@ export default function ExerciseLibraryScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.canvas,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
     backgroundColor: colors.canvas,
   },
+  headerText: { flex: 1, minWidth: 0 },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: {
     ...typography.displayLarge,
     color: colors.textPrimary,
@@ -254,7 +319,7 @@ const styles = StyleSheet.create({
   },
   categoryBanner: {
     marginHorizontal: spacing.screen,
-    padding: spacing.md,
+    padding: spacing.sm,
     borderRadius: radius.control,
     backgroundColor: colors.selectedSoft,
     flexDirection: 'row',
@@ -271,21 +336,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceWarm,
     marginHorizontal: spacing.screen,
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
     borderRadius: radius.control,
     paddingHorizontal: spacing.md,
-    height: componentSizes.searchHeight,
+    minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.surfaceWarm,
+    borderColor: colors.hairline,
   },
   searchIcon: {
     marginRight: spacing.xs,
   },
   searchInput: {
+    ...typography.body,
     flex: 1,
+    minWidth: 0,
     color: colors.textPrimary,
-    fontSize: 16,
+    paddingVertical: spacing.xs,
   },
   clearSearchButton: {
     width: 44,
@@ -294,31 +361,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterContainer: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.micro,
   },
+  filterRow: { flexGrow: 0 },
+  filterRowContent: { paddingHorizontal: spacing.screen, alignItems: 'center' },
   filterPill: {
     minHeight: 44,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     justifyContent: 'center',
     borderRadius: 999,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     marginRight: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
   },
   filterPillActive: {
-    backgroundColor: colors.white,
-    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primarySoft,
   },
   filterPillText: {
+    ...typography.metaSmall,
     color: colors.textPrimary,
-    fontWeight: '600',
-    fontSize: 14,
   },
   filterPillTextActive: {
     color: colors.primary,
   },
+  resultsList: { flex: 1 },
   listContent: {
+    flexGrow: 1,
     paddingHorizontal: spacing.screen,
     paddingBottom: spacing.screen,
   },
@@ -326,17 +397,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.surfaceWarm,
     borderRadius: radius.control,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderCurve: 'continuous',
+    minHeight: 96,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
     borderWidth: 0,
     alignItems: 'center',
+    gap: spacing.sm,
   },
   cardImageFrame: {
-    width: 72,
-    height: 56,
-    borderRadius: radius.control,
-    backgroundColor: colors.white,
-    marginRight: spacing.md,
+    width: 96,
+    height: 72,
+    flexShrink: 0,
+    borderRadius: radius.subtle,
+    borderCurve: 'continuous',
+    backgroundColor: colors.surface,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -347,6 +422,8 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
     minWidth: 0,
+    minHeight: 72,
+    justifyContent: 'center',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -367,27 +444,20 @@ const styles = StyleSheet.create({
   cardMuscle: {
     ...typography.statLabel,
     color: colors.textSecondary,
-    marginTop: radius.subtle,
-    marginBottom: spacing.sm,
+    marginTop: spacing.micro,
+    marginBottom: spacing.micro,
   },
-  cardTagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  tag: {
+  cardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.selectedSoft,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.micro,
-    borderRadius: radius.control,
     gap: spacing.micro,
+    minWidth: 0,
   },
-  tagText: {
+  cardMetaText: {
+    ...typography.metaSmall,
+    flex: 1,
+    minWidth: 0,
     color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',

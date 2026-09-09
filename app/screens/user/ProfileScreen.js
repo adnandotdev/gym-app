@@ -1,13 +1,23 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../context/AuthContext';
 import Button from '../../components/Button';
-import { colors, typography, spacing, radius } from '../../theme/colors';
+import { typography, spacing, radius } from '../../theme/colors';
+import { THEME_PREFERENCES, useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
+
+const APPEARANCE_LABELS = {
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
+};
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, isLoading } = useContext(AuthContext);
+  const { colors, preference, setPreference } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   const calculateBMI = () => {
     if (!user?.currentWeight || !user?.height) return '--';
@@ -27,20 +37,26 @@ export default function ProfileScreen({ navigation }) {
     </View>
   );
 
-  const renderSettingRow = (icon, label, onPress) => (
-    <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={onPress}>
+  const renderSettingRow = (icon, label, onPress, isLast = false) => (
+    <TouchableOpacity
+      style={[styles.settingRow, isLast && styles.settingRowLast]}
+      activeOpacity={0.7}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={onPress ? label : `${label}, unavailable`}
+      accessibilityState={{ disabled: !onPress }}
+    >
       <View style={styles.settingIconBox}>
         <Ionicons name={icon} size={20} color={colors.textPrimary} />
       </View>
       <Text style={styles.settingLabel}>{label}</Text>
-      <Ionicons name="chevron-forward" size={20} color={colors.border} />
+      {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : <Text style={styles.unavailableLabel}>Unavailable</Text>}
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Profile Header */}
@@ -75,7 +91,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.goalIconBox}>
             <Ionicons name="flag-outline" size={24} color={colors.accent} />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={styles.goalContent}>
             <Text style={styles.goalLabel}>Current Goal</Text>
             <Text style={styles.goalValue}>{user?.fitnessGoal || 'Not set'}</Text>
           </View>
@@ -85,9 +101,46 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Settings</Text>
         <View style={styles.settingsCard}>
           {renderSettingRow('person-outline', 'Edit Profile', () => navigation.navigate('EditProfile'))}
-          {renderSettingRow('notifications-outline', 'Notifications')}
+          {renderSettingRow('notifications-outline', 'Notifications', () => navigation.navigate('Notifications'))}
+          <View style={styles.appearanceBlock}>
+            <View style={styles.appearanceHeader}>
+              <View style={styles.settingIconBox}>
+                <Ionicons name="contrast-outline" size={20} color={colors.textPrimary} />
+              </View>
+              <View style={styles.appearanceTitleGroup}>
+                <Text style={styles.settingLabel}>Appearance</Text>
+                <Text style={styles.appearanceValue}>{APPEARANCE_LABELS[preference]}</Text>
+              </View>
+            </View>
+            <View style={styles.appearanceOptions} accessibilityRole="radiogroup">
+              {THEME_PREFERENCES.map((option) => {
+                const selected = option === preference;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[styles.appearanceOption, selected && styles.appearanceOptionSelected]}
+                    activeOpacity={0.75}
+                    onPress={() => setPreference(option)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`${APPEARANCE_LABELS[option]} appearance`}
+                    accessibilityState={{ selected: option === preference }}
+                  >
+                    <Ionicons
+                      name={option === 'system' ? 'phone-portrait-outline' : option === 'light' ? 'sunny-outline' : 'moon-outline'}
+                      size={16}
+                      color={selected ? colors.accent : colors.textSecondary}
+                    />
+                    <Text style={[styles.appearanceOptionText, selected && styles.appearanceOptionTextSelected]}>
+                      {APPEARANCE_LABELS[option]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={styles.appearanceHint}>System follows your device setting automatically.</Text>
+          </View>
           {renderSettingRow('lock-closed-outline', 'Privacy & Security')}
-          {renderSettingRow('help-circle-outline', 'Help & Support')}
+          {renderSettingRow('help-circle-outline', 'Help & Support', undefined, true)}
         </View>
 
         {/* Logout */}
@@ -106,33 +159,34 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.canvas,
   },
   scrollContent: {
-    padding: spacing.screen,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl,
   },
   header: {
     alignItems: 'center',
     backgroundColor: colors.surface,
-    padding: spacing.screen,
+    padding: spacing.md,
+    borderCurve: 'continuous',
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.hairline,
-    marginBottom: spacing.xl,
-    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
   },
   avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: colors.surfaceDark,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     overflow: 'hidden',
   },
   avatarImage: {
@@ -142,11 +196,13 @@ const styles = StyleSheet.create({
   name: {
     ...typography.screenTitle,
     color: colors.textPrimary,
+    textAlign: 'center',
   },
   email: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+    textAlign: 'center',
   },
   badgeContainer: {
     flexDirection: 'row',
@@ -167,20 +223,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.cardTitle,
     color: colors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xs,
   },
   statBox: {
     width: '48%',
     backgroundColor: colors.surface,
-    padding: spacing.lg,
+    padding: spacing.md,
+    borderCurve: 'continuous',
     borderRadius: radius.card,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.hairline,
     alignItems: 'flex-start',
@@ -208,28 +265,36 @@ const styles = StyleSheet.create({
   goalBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceDark,
+    backgroundColor: colors.accentLight,
     borderRadius: radius.card,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
   goalIconBox: {
     width: 44,
     height: 44,
     borderRadius: radius.control,
-    backgroundColor: colors.surfaceDark2,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.hairline,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
+  goalContent: {
+    flex: 1,
+  },
   goalLabel: {
-    color: colors.mutedOnDark,
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   goalValue: {
-    color: colors.textOnDark,
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: spacing.micro,
@@ -237,26 +302,92 @@ const styles = StyleSheet.create({
   settingsCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.hairline,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.sm,
+    minHeight: 64,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.hairline,
+  },
+  settingRowLast: {
+    borderBottomWidth: 0,
+  },
+  appearanceBlock: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+  },
+  appearanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 40,
+  },
+  appearanceTitleGroup: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  appearanceValue: {
+    ...typography.metaSmall,
+    color: colors.textSecondary,
+  },
+  appearanceOptions: {
+    flexDirection: 'row',
+    gap: spacing.micro,
+    padding: spacing.micro,
+    marginTop: spacing.xs,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
+  },
+  appearanceOption: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.micro,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
+  },
+  appearanceOptionSelected: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  appearanceOptionText: {
+    ...typography.metaSmall,
+    color: colors.textSecondary,
+  },
+  appearanceOptionTextSelected: {
+    color: colors.accent,
+  },
+  appearanceHint: {
+    ...typography.metaSmall,
+    color: colors.muted,
+    marginTop: spacing.xs,
+  },
+  unavailableLabel: {
+    ...typography.metaSmall,
+    color: colors.mutedStrong,
+    marginLeft: spacing.xs,
   },
   settingIconBox: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.control,
     backgroundColor: colors.accentLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   settingLabel: {
     flex: 1,

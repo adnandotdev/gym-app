@@ -22,7 +22,7 @@ export const OnboardingProvider = ({ children }) => {
     bmi: 24.2,
     currentBodyShape: 3,
     desiredBodyShape: 3,
-    targetWeight: 70,
+    targetWeight: null,
     focusAreas: [],
     trainingDays: [],
     trainingReminder: false,
@@ -68,10 +68,11 @@ export const OnboardingProvider = ({ children }) => {
     });
   };
 
-  const submitOnboarding = async () => {
+  const submitOnboarding = async (overrides = {}) => {
     setIsSubmitting(true);
     try {
-      const response = await api.put('/auth/onboarding', onboardingData);
+      const payload = { ...onboardingData, ...overrides };
+      const response = await api.put('/auth/onboarding', payload);
       
       if (response.data && response.data.success) {
         // Sync the updated complete user object in AuthContext and AsyncStorage
@@ -80,7 +81,7 @@ export const OnboardingProvider = ({ children }) => {
         Toast.show({
           type: 'success',
           text1: 'Profile Setup Complete!',
-          text2: 'Welcome to MuscleMap!',
+          text2: 'Welcome to LiftSutra!',
         });
         return { success: true };
       } else {

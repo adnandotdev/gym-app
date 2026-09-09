@@ -135,6 +135,77 @@ func seamChangeFraction(_ bitmap: Bitmap, edge: String, bandDepth: Int) -> Doubl
   return total > 0 ? Double(changed) / Double(total) : 0
 }
 
+func horizontalLineChangeFraction(_ bitmap: Bitmap, firstRow: Int, secondRow: Int) -> Double {
+  let strideSize = max(1, bitmap.width / 192)
+  var changed = 0
+  var total = 0
+
+  for x in stride(from: 0, to: bitmap.width, by: strideSize) {
+    let firstOffset = firstRow * bitmap.bytesPerRow + x * 4
+    let secondOffset = secondRow * bitmap.bytesPerRow + x * 4
+    let channelChange = (0..<3).map {
+      abs(Int(bitmap.pixels[firstOffset + $0]) - Int(bitmap.pixels[secondOffset + $0]))
+    }.max() ?? 0
+    if channelChange > 3 { changed += 1 }
+    total += 1
+  }
+  return total > 0 ? Double(changed) / Double(total) : 0
+}
+
+func isVisibleInternalDivider(_ bitmap: Bitmap, range: ClosedRange<Int>) -> Bool {
+  let beforeChange = horizontalLineChangeFraction(
+    bitmap,
+    firstRow: range.lowerBound - 1,
+    secondRow: range.lowerBound
+  )
+  let afterChange = horizontalLineChangeFraction(
+    bitmap,
+    firstRow: range.upperBound,
+    secondRow: range.upperBound + 1
+  )
+  return max(beforeChange, afterChange) > 0.08
+}
+
+func internalHorizontalDivider(_ bitmap: Bitmap) -> ClosedRange<Int>? {
+  let searchStart = max(1, Int(Double(bitmap.height) * 0.10))
+  let searchEnd = min(bitmap.height - 2, Int(Double(bitmap.height) * 0.95))
+  var runStart: Int?
+
+  for row in searchStart...searchEnd {
+    if isUniformNearWhiteLine(bitmap, horizontal: true, index: row) {
+      if runStart == nil { runStart = row }
+      continue
+    }
+
+    if let start = runStart, row - start >= 2 {
+      let candidate = start...(row - 1)
+      if isVisibleInternalDivider(bitmap, range: candidate) { return candidate }
+    }
+    runStart = nil
+  }
+
+  if let start = runStart, searchEnd - start + 1 >= 2 {
+    let candidate = start...searchEnd
+    if isVisibleInternalDivider(bitmap, range: candidate) { return candidate }
+  }
+  return nil
+}
+
+func darkPixelFraction(_ bitmap: Bitmap, horizontal: Bool, index: Int) -> Double {
+  let sampleCount = horizontal ? bitmap.width : bitmap.height
+  var dark = 0
+  for sample in 0..<sampleCount {
+    let x = horizontal ? sample : index
+    let y = horizontal ? index : sample
+    let offset = y * bitmap.bytesPerRow + x * 4
+    let luminance = 0.2126 * Double(bitmap.pixels[offset])
+      + 0.7152 * Double(bitmap.pixels[offset + 1])
+      + 0.0722 * Double(bitmap.pixels[offset + 2])
+    if luminance < 180 { dark += 1 }
+  }
+  return Double(dark) / Double(sampleCount)
+}
+
 var failures: [String] = []
 for url in imageURLs {
   guard let bitmap = decode(url) else {
@@ -148,6 +219,13 @@ for url in imageURLs {
     if Double(depth) / Double(dimension) > 0.02 && hasVisibleFullEdgeSeam {
       failures.append("\(url.path): \(edge) near-white uniform band is \(depth)px (\(dimension)px dimension)")
     }
+  }
+  if let divider = internalHorizontalDivider(bitmap) {
+    failures.append("\(url.path): internal horizontal divider at rows \(divider.lowerBound)-\(divider.upperBound)")
+  }
+  if url.path.hasSuffix("shoulder-1--standing-barbell/male-finish.jpg"),
+     darkPixelFraction(bitmap, horizontal: true, index: 0) > 0.01 {
+    failures.append("\(url.path): overhead equipment is clipped by the top edge")
   }
 }
 

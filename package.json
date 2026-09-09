@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "eas-build-post-install": "node scripts/checkReleaseBuild.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/overpass": "^0.4.2",
@@ -22,6 +23,7 @@
     "expo-haptics": "~57.0.2",
     "expo-linear-gradient": "~57.0.1",
     "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

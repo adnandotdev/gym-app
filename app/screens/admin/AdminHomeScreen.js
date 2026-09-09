@@ -1,13 +1,17 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import Button from '../../components/Button';
-import { colors, radius, spacing, typography } from '../../theme/colors';
+import { radius, spacing, typography } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const AdminHomeScreen = () => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, logout, isLoading } = useContext(AuthContext);
 
   const handleLogout = async () => {
@@ -24,11 +28,10 @@ const AdminHomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       <View style={styles.content}>
         {/* Top Header Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>MuscleMap Admin</Text>
+          <Text style={styles.title}>LiftSutra Admin</Text>
           <Text style={styles.subtitle}>Manage your app content ⚡</Text>
         </View>
 
@@ -97,7 +100,7 @@ const AdminHomeScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.canvas,
@@ -156,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeText: {
-    color: colors.white,
+    color: colors.accentOnDark,
     fontWeight: '600',
     fontSize: 11,
   },

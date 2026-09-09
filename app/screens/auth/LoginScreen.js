@@ -1,14 +1,19 @@
 import React, { useContext, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import Button from '../../components/Button';
+import BrandLogo from '../../components/BrandLogo';
 import MotionPressable from '../../components/MotionPressable';
-import { colors, radius, spacing, typography } from '../../theme/colors';
+import { radius, spacing, typography } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 export default function LoginScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { login } = useContext(AuthContext);
   const passwordRef = useRef(null);
   const [step, setStep] = useState('email');
@@ -61,13 +66,13 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <MotionPressable style={styles.backButton} onPress={goBack} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={28} color={colors.ink} />
           </MotionPressable>
 
+          <BrandLogo style={{ alignSelf: 'center' }} />
           <Text style={styles.title}>Sign In</Text>
           <View style={styles.form}>
             <Text style={styles.label}>{step === 'email' ? 'Email Address' : 'Password'}</Text>
@@ -103,7 +108,7 @@ export default function LoginScreen({ navigation }) {
               </MotionPressable>
             )}
 
-            <Button title={step === 'email' ? 'Continue' : 'Sign In'} onPress={step === 'email' ? continueWithEmail : handleLogin} loading={isSubmitting} />
+            <Button style={styles.submitButton} title={step === 'email' ? 'Continue' : 'Sign In'} onPress={step === 'email' ? continueWithEmail : handleLogin} loading={isSubmitting} />
           </View>
 
           <View style={styles.accountRow}>
@@ -112,47 +117,29 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.accountLink}>Create Account</Text>
             </MotionPressable>
           </View>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} /><Text style={styles.or}>Or</Text><View style={styles.divider} />
-          </View>
-          <View style={styles.socialRow} accessibilityRole="group" accessibilityLabel="Social sign-in providers coming soon">
-            {['G', '●', 'f'].map((label) => (
-              <View key={label} style={styles.socialButton} accessibilityRole="button" accessibilityState={{ disabled: true }}>
-                <Text style={styles.socialText}>{label}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.socialNote}>Social sign-in coming soon</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+const createStyles = (colors) => ({
+  container: { flex: 1, backgroundColor: colors.canvas },
   keyboard: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: spacing.screen, paddingBottom: spacing.xl },
   backButton: { width: 44, height: 44, justifyContent: 'center', marginTop: spacing.xs },
   title: { ...typography.screenTitle, textAlign: 'center', color: colors.ink, marginTop: spacing.xs },
-  form: { marginTop: 82 },
-  label: { ...typography.body, fontFamily: 'Overpass_500Medium', color: colors.ink, marginBottom: spacing.md },
-  inputShell: { height: 58, borderRadius: radius.card, backgroundColor: colors.surfaceWarm, flexDirection: 'row', alignItems: 'center' },
+  form: { marginTop: spacing.xl },
+  label: { ...typography.caption, fontFamily: 'Overpass_500Medium', color: colors.ink, marginBottom: spacing.xs },
+  inputShell: { minHeight: 52, borderRadius: radius.control, borderCurve: 'continuous', backgroundColor: colors.surfaceWarm, flexDirection: 'row', alignItems: 'center' },
   inputError: { borderWidth: 1, borderColor: colors.danger },
-  input: { flex: 1, paddingHorizontal: spacing.md, fontFamily: 'Overpass_400Regular', fontSize: 16, color: colors.ink },
-  eyeButton: { width: 52, height: 58, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, minWidth: 0, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: 'Overpass_400Regular', fontSize: 16, color: colors.ink },
+  eyeButton: { width: 48, height: 52, alignItems: 'center', justifyContent: 'center' },
+  submitButton: { marginTop: spacing.md },
   error: { ...typography.caption, color: colors.danger, marginTop: spacing.xs },
   forgot: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
   forgotText: { ...typography.caption, fontFamily: 'Overpass_500Medium', color: colors.ink },
-  accountRow: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
+  accountRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
   mutedText: { ...typography.caption, color: colors.muted },
   accountLink: { ...typography.caption, fontFamily: 'Overpass_600SemiBold', color: colors.ink },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xl },
-  divider: { flex: 1, height: 1, backgroundColor: colors.hairline },
-  or: { ...typography.caption, color: colors.mutedStrong },
-  socialRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.screen, marginTop: spacing.xl },
-  socialButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F4F4F6', alignItems: 'center', justifyContent: 'center' },
-  socialText: { fontFamily: 'Overpass_700Bold', fontSize: 24, color: colors.ink },
-  socialNote: { ...typography.caption, color: colors.muted, textAlign: 'center', marginTop: spacing.sm },
 });

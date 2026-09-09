@@ -1,14 +1,18 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { OnboardingContext } from '../../context/OnboardingContext';
-import { AuthContext } from '../../context/AuthContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import { spacing } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const Step2Gender = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
-  const { logout } = useContext(AuthContext);
   const selectedGender = onboardingData.gender;
 
   const handleSelect = (gender) => {
@@ -19,10 +23,6 @@ const Step2Gender = ({ navigation }) => {
     if (selectedGender) {
       navigation.navigate('Step3FitnessLevel');
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
   };
 
   const options = [
@@ -55,13 +55,7 @@ const Step2Gender = ({ navigation }) => {
                 styles.iconContainer,
                 selectedGender === opt.id && styles.selectedIconContainer,
               ]}>
-                {opt.id === 'Male' ? (
-                  <Image source={require('../../../assets/images/onboarding/gender-male.png')} style={styles.avatarImage} />
-                ) : opt.id === 'Female' ? (
-                  <Image source={require('../../../assets/images/onboarding/gender-female.png')} style={styles.avatarImage} />
-                ) : (
-                  <Image source={require('../../../assets/images/onboarding/gender-neutral.png')} style={styles.avatarImage} />
-                )}
+                <Ionicons name={opt.id === 'Male' ? 'male-outline' : opt.id === 'Female' ? 'female-outline' : 'person-outline'} size={24} color={colors.primary} />
               </View>
               <Text style={styles.optionLabel}>{opt.label}</Text>
               <View style={[
@@ -74,16 +68,6 @@ const Step2Gender = ({ navigation }) => {
           ))}
         </View>
 
-        {/* Already have an account logout link */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={styles.loginLink}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.loginLinkText}>
-            Already have an account? <Text style={styles.underlineText}>Log in</Text>
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Continue button at bottom */}
@@ -99,127 +83,105 @@ const Step2Gender = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 120,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   header: {
-    marginBottom: 36,
+    marginBottom: spacing.screen,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#82786A',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   optionsContainer: {
     width: '100%',
-    marginBottom: 40,
+    marginBottom: spacing.screen,
   },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#CFC4B3',
-    paddingVertical: 18,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.sm,
     paddingHorizontal: 20,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: colors.ink,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
   selectedOptionRow: {
-    borderColor: '#2F4A3C',
-    backgroundColor: '#F4E3C9',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
   selectedIconContainer: {
-    backgroundColor: '#E6BE86',
-  },
-  avatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    backgroundColor: colors.primarySoft,
   },
   optionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#17140F',
+    color: colors.ink,
     flex: 1,
   },
   radioOuter: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#A79B88',
+    borderWidth: 1,
+    borderColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectedRadioOuter: {
-    borderColor: '#2F4A3C',
+    borderColor: colors.primary,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#2F4A3C',
-  },
-  loginLink: {
-    alignItems: 'center',
-    marginTop: 10,
-    paddingVertical: 10,
-  },
-  loginLinkText: {
-    fontSize: 14,
-    color: '#82786A',
-    fontWeight: '500',
-  },
-  underlineText: {
-    color: '#2F4A3C',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
+    backgroundColor: colors.primary,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
+    flexShrink: 0,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
+    borderTopColor: colors.hairline,
   },
   continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
+    backgroundColor: colors.primary,
+    shadowColor: colors.ink,
   },
 });
 

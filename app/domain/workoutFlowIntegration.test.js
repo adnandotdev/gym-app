@@ -12,11 +12,11 @@ test('home categories navigate with stable category ids', () => {
   assert.doesNotMatch(source, /initialMuscle: item\.muscle/);
 });
 
-test('home starts the real current-day plan or sends an empty day to Calendar', () => {
+test('home starts the real current-day plan through readiness or sends an empty day to Calendar', () => {
   const source = read('app/screens/user/HomeScreen.js');
   assert.match(source, /getTodayName/);
   assert.match(source, /plan\[todayName\]/);
-  assert.match(source, /navigate\('WorkoutSession', \{ day: todayName, exercises: todayExercises/);
+  assert.match(source, /navigate\('WorkoutReadiness', \{ day: todayName, exercises: todayExercises/);
   assert.match(source, /navigate\('My Plan', \{ initialDay: todayName/);
 });
 
@@ -32,16 +32,17 @@ test('workout session uses the queue reducer and skip advances instead of comple
   const source = read('app/screens/user/WorkoutSessionScreen.js');
   assert.match(source, /useReducer\(\s*workoutSessionReducer/);
   assert.match(source, /type: 'SKIP_CURRENT'/);
-  assert.match(source, /type: 'COMPLETE_CURRENT'/);
+  assert.match(source, /type: 'COMPLETE_SET'/);
   assert.match(source, /getCurrentExercise/);
   assert.doesNotMatch(source, /setIsComplete\(true\)/);
+  assert.match(source, /title="Skip Exercise & Continue" onPress=\{\(\) => \{\s*dispatch\(\{ type: 'SKIP_CURRENT' \}\);\s*\}\}/);
 });
 
-test('Calendar can start its selected day and Activity is a real tab', () => {
+test('Calendar can start its selected day through readiness and Activity is a real tab', () => {
   const planSource = read('app/screens/user/WorkoutPlanScreen.js');
   const tabsSource = read('app/navigation/MainTabNavigator.js');
   const navigatorSource = read('app/navigation/AppNavigator.js');
-  assert.match(planSource, /navigate\('WorkoutSession', \{ day: selectedDay, exercises: planExercises/);
+  assert.match(planSource, /navigate\('WorkoutReadiness', \{ day: selectedDay, exercises: planExercises/);
   assert.match(tabsSource, /ActivityScreen/);
   assert.match(tabsSource, /name="Activity"/);
   assert.match(navigatorSource, /name="ExerciseLibrary"/);

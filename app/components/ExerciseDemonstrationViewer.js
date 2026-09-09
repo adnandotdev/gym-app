@@ -3,7 +3,9 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MotionPressable from './MotionPressable';
 import { resolveExerciseDemonstration } from '../data/exerciseDemonstrationImages';
-import { colors, radius, spacing, typography } from '../theme/colors';
+import { radius, spacing, typography } from '../theme/colors';
+import { useAppTheme } from '../context/ThemeContext';
+import useThemedStyles from '../theme/useThemedStyles';
 
 const PHASES = Object.freeze([
   Object.freeze({ id: 'start', label: 'Start position' }),
@@ -17,6 +19,8 @@ export default function ExerciseDemonstrationViewer({
   equipment,
   compact = false,
 }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [phase, setPhase] = useState('start');
   const demonstration = useMemo(
     () => resolveExerciseDemonstration(variationId, familyId, 'male'),
@@ -46,7 +50,7 @@ export default function ExerciseDemonstrationViewer({
         <Image
           source={demonstration[phase]}
           style={styles.image}
-          resizeMode="cover"
+          resizeMode="contain"
           accessible
           accessibilityLabel={`${exerciseName}, ${selectedPhase.label.toLowerCase()}, male model using ${equipment}`}
         />
@@ -68,7 +72,7 @@ export default function ExerciseDemonstrationViewer({
               <Ionicons
                 name={selected ? 'checkmark-circle' : 'ellipse-outline'}
                 size={18}
-                color={selected ? colors.textOnDark : colors.textSecondary}
+                color={selected ? colors.accentOnDark : colors.textSecondary}
               />
               <Text style={[styles.phaseLabel, selected && styles.phaseLabelSelected]}>
                 {item.label}
@@ -86,9 +90,9 @@ export default function ExerciseDemonstrationViewer({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   containerCompact: {
     marginBottom: spacing.lg,
@@ -97,7 +101,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   headingCopy: {
     flex: 1,
@@ -122,10 +126,9 @@ const styles = StyleSheet.create({
   imageFrame: {
     aspectRatio: 4 / 3,
     borderRadius: radius.card,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     backgroundColor: colors.surfaceWarm,
-    borderWidth: 1,
-    borderColor: colors.hairline,
   },
   image: {
     width: '100%',
@@ -139,6 +142,8 @@ const styles = StyleSheet.create({
   phaseTab: {
     flex: 1,
     minHeight: 44,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -149,15 +154,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   phaseTabSelected: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   phaseLabel: {
     ...typography.action,
+    flexShrink: 1,
+    textAlign: 'center',
     color: colors.textPrimary,
   },
   phaseLabelSelected: {
-    color: colors.textOnDark,
+    color: colors.accentOnDark,
   },
   equipmentRow: {
     minHeight: 36,
@@ -168,6 +175,7 @@ const styles = StyleSheet.create({
   },
   equipmentText: {
     ...typography.caption,
+    flex: 1,
     color: colors.textSecondary,
   },
 });

@@ -123,7 +123,7 @@ const removeWorkoutExercise = (userId, day, exerciseId) => {
   return nextExercises;
 };
 
-module.exports = {
+const developmentOperations = {
   addWorkoutExercise,
   createEmptyWeek,
   createUser,
@@ -135,3 +135,14 @@ module.exports = {
   updateUser,
   validateUser,
 };
+
+// Defense in depth for a database disconnect between middleware and a route.
+module.exports = Object.fromEntries(Object.entries(developmentOperations).map(([name, operation]) => [
+  name,
+  (...args) => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Development memory storage is disabled in production.');
+    }
+    return operation(...args);
+  },
+]));

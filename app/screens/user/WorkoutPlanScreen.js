@@ -2,10 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   FlatList,
-  StatusBar,
   Alert,
   RefreshControl,
   ActivityIndicator,
@@ -16,13 +14,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutPlan } from '../../context/WorkoutPlanContext';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
-import { colors, typography, spacing, radius, componentSizes } from '../../theme/colors';
+import { typography, spacing, radius, componentSizes } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 import { resolveExerciseDemonstration } from '../../data/exerciseDemonstrationImages';
 import { getTodayName } from '../../domain/workoutSession';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function WorkoutPlanScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [selectedDay, setSelectedDay] = useState(route?.params?.initialDay || getTodayName());
   const { plan, loading, loadPlan, removeExercise, clearDay } = useWorkoutPlan();
@@ -92,6 +94,9 @@ export default function WorkoutPlanScreen({ navigation, route }) {
       <TouchableOpacity
         style={[styles.dayPill, selectedDay === item && styles.dayPillActive]}
         onPress={() => setSelectedDay(item)}
+        accessibilityRole="button"
+        accessibilityLabel={item === todayName ? `${item}, today` : item}
+        accessibilityState={{ selected: selectedDay === item }}
       >
         <Text style={[styles.dayPillText, selectedDay === item && styles.dayPillTextActive]}>
           {item.charAt(0)}
@@ -102,6 +107,7 @@ export default function WorkoutPlanScreen({ navigation, route }) {
   );
 
   const renderPlanExercise = ({ item }) => {
+    const targetLabel = /[a-z]/i.test(String(item.reps)) ? item.reps : `${item.reps} reps`;
     const demonstration = resolveExerciseDemonstration(
       item.exerciseVariantId || item.id,
       item.exerciseFamilyId,
@@ -115,14 +121,14 @@ export default function WorkoutPlanScreen({ navigation, route }) {
           activeOpacity={0.8}
           onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
           accessibilityRole="button"
-          accessibilityLabel={`${item.name}. ${item.variationSummary || item.muscleGroup}. ${item.sets} sets of ${item.reps} reps.`}
+          accessibilityLabel={`${item.name}. ${item.variationSummary || item.muscleGroup}. ${item.sets} sets of ${targetLabel}.`}
         >
           <View style={styles.cardImageBox}>
             {demonstration ? (
               <Image
                 source={demonstration.thumbnail}
                 style={styles.cardImage}
-                resizeMode="cover"
+                resizeMode="contain"
                 accessible={false}
                 importantForAccessibility="no"
               />
@@ -132,12 +138,12 @@ export default function WorkoutPlanScreen({ navigation, route }) {
           </View>
 
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
             {item.variationSummary ? (
               <Text style={styles.cardVariation} numberOfLines={2}>{item.variationSummary}</Text>
             ) : null}
             <Text style={styles.cardSubtitle}>
-              {item.sets} Sets • {item.reps} Reps{item.equipment ? ` • ${item.equipment}` : ''}
+              {item.sets} Sets • {targetLabel}{item.equipment ? ` • ${item.equipment}` : ''}
             </Text>
           </View>
         </TouchableOpacity>
@@ -155,12 +161,11 @@ export default function WorkoutPlanScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>My Workout Plan</Text>
-          <Text style={styles.headerCopy}>A focused weekly gallery of movement.</Text>
+          <Text style={styles.headerCopy}>Choose a day and build your workout.</Text>
         </View>
         <TouchableOpacity
           accessibilityRole="button"
@@ -181,6 +186,7 @@ export default function WorkoutPlanScreen({ navigation, route }) {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item}
           renderItem={renderDayPill}
+          style={styles.dayList}
           contentContainerStyle={styles.daysContent}
         />
       </View>
@@ -188,11 +194,11 @@ export default function WorkoutPlanScreen({ navigation, route }) {
       {planExercises.length > 0 ? (
         <TouchableOpacity
           style={styles.startWorkoutButton}
-          onPress={() => navigation.navigate('WorkoutSession', { day: selectedDay, exercises: planExercises, source: 'plan' })}
+          onPress={() => navigation.navigate('WorkoutReadiness', { day: selectedDay, exercises: planExercises, source: 'plan' })}
           accessibilityRole="button"
           accessibilityLabel={`Start ${selectedDay} workout with ${planExercises.length} exercises`}
         >
-          <Ionicons name="play" size={20} color={colors.white} />
+          <Ionicons name="play" size={20} color={colors.accentOnDark} />
           <Text style={styles.startWorkoutText}>Start {selectedDay === todayName ? 'Today’s' : `${selectedDay}’s`} Workout</Text>
         </TouchableOpacity>
       ) : null}
@@ -246,13 +252,13 @@ export default function WorkoutPlanScreen({ navigation, route }) {
         activeOpacity={0.8}
         onPress={() => navigation.navigate('ExerciseLibrary')}
       >
-        <Ionicons name="add" size={28} color={colors.background} />
+        <Ionicons name="add" size={28} color={colors.accentOnDark} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.canvas,
@@ -262,11 +268,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
     backgroundColor: colors.canvas,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
   },
   headerTitle: {
     ...typography.displayLarge,
@@ -290,9 +294,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   daysContainer: {
-    paddingTop: spacing.md,
-    marginBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
+  dayList: { flexGrow: 0 },
   daysContent: {
     paddingHorizontal: spacing.screen,
   },
@@ -301,29 +306,33 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.screen,
     marginBottom: spacing.md,
     borderRadius: radius.control,
+    borderCurve: 'continuous',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
   },
-  startWorkoutText: { ...typography.action, color: colors.white },
+  startWorkoutText: { ...typography.action, color: colors.accentOnDark, flexShrink: 1, textAlign: 'center' },
   dayPillContainer: {
     alignItems: 'center',
-    marginRight: spacing.sm,
+    marginRight: spacing.xs,
+    minHeight: 54,
   },
   dayPill: {
     width: 44,
     height: 44,
     borderRadius: radius.control,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceWarm,
     borderWidth: 1,
     borderColor: colors.hairline,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dayPillActive: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.primary,
   },
   dayPillText: {
     color: colors.textPrimary,
@@ -331,7 +340,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   dayPillTextActive: {
-    color: colors.textOnDark,
+    color: colors.accentOnDark,
   },
   todayDot: {
     width: 6,
@@ -346,10 +355,11 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceWarm,
     borderRadius: radius.card,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderCurve: 'continuous',
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.hairline,
     alignItems: 'center',
@@ -361,13 +371,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardImageBox: {
-    width: 72,
+    width: 80,
     aspectRatio: 4 / 3,
-    borderRadius: radius.control,
-    backgroundColor: colors.accentLight,
+    borderRadius: radius.subtle,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
     overflow: 'hidden',
   },
   cardImage: {
@@ -391,7 +401,7 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     ...typography.statLabel,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: spacing.micro,
   },
   deleteBtn: {
     width: 44,
@@ -400,7 +410,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.selectedSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
+    marginLeft: spacing.micro,
   },
   emptyContainer: {
     flex: 1,
@@ -439,11 +449,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.screen,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.primary,
     borderRadius: radius.control,
   },
   emptyBtnText: {
-    color: colors.textOnDark,
+    color: colors.accentOnDark,
     fontWeight: '400',
     fontSize: 16,
   },
@@ -453,7 +463,7 @@ const styles = StyleSheet.create({
     width: componentSizes.floatingActionSize,
     height: componentSizes.floatingActionSize,
     borderRadius: radius.control,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

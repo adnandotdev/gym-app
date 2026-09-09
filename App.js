@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,8 +13,33 @@ import {
   useFonts,
 } from '@expo-google-fonts/overpass';
 import { AuthProvider } from './app/context/AuthContext';
+import { ThemeProvider, useAppTheme } from './app/context/ThemeContext';
 import AppNavigator from './app/navigation/AppNavigator';
-import { colors } from './app/theme/colors';
+import BrandLogo from './app/components/BrandLogo';
+import useThemedStyles from './app/theme/useThemedStyles';
+
+function ThemeReadyGate({ fontsLoaded }) {
+  const { colors, isDark, isReady } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+
+  if (!fontsLoaded || !isReady) {
+    return (
+      <View style={styles.loading}>
+        <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.canvas} />
+        {fontsLoaded ? <BrandLogo variant="artwork" /> : null}
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <AuthProvider>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.canvas} />
+      <AppNavigator />
+      <Toast />
+    </AuthProvider>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -24,21 +50,12 @@ export default function App() {
     Overpass_800ExtraBold,
   });
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <AppNavigator />
-          <Toast />
-        </AuthProvider>
+        <ThemeProvider>
+          <ThemeReadyGate fontsLoaded={fontsLoaded} />
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -48,6 +65,9 @@ const styles = StyleSheet.create({
   gestureRoot: {
     flex: 1,
   },
+});
+
+const createStyles = (colors) => ({
   loading: {
     flex: 1,
     alignItems: 'center',

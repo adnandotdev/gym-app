@@ -4,18 +4,21 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  StatusBar
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import Button from '../../components/Button';
-import { colors, typography } from '../../theme/colors';
+import BrandLogo from '../../components/BrandLogo';
+import { typography, spacing, radius } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const ForgotPasswordScreen = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [email, setEmail] = useState('');
   
   // Field focus state
@@ -24,7 +27,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   // Field validation error state
   const [emailError, setEmailError] = useState('');
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmitting = false;
 
   // Frontend validation
   const validateForm = () => {
@@ -56,27 +59,15 @@ const ForgotPasswordScreen = ({ navigation }) => {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Mimic API request delay
-    setTimeout(() => {
-      setIsSubmitting(false);
-      Toast.show({
-        type: 'success',
-        text1: 'Reset Link Sent',
-        text2: `A recovery email has been mock-sent to ${email.trim()}.`,
-      });
-      
-      // Wait briefly for the toast to show, then go back to Login
-      setTimeout(() => {
-        navigation.navigate('Login');
-      }, 2000);
-    }, 1500);
+    Toast.show({
+      type: 'info',
+      text1: 'Password recovery unavailable',
+      text2: 'Email recovery is not available yet. No reset email has been sent.',
+    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
@@ -88,9 +79,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
         >
           {/* Header section */}
           <View style={styles.header}>
-            <Text style={styles.title}>MuscleMap</Text>
+            <BrandLogo style={{ marginBottom: spacing.xs }} />
             <Text style={styles.subtitle}>
-              Reset your password and return to your plan.
+              Email recovery is not available yet. You can return to sign in if you remember your password.
             </Text>
           </View>
 
@@ -112,7 +103,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoFocus={true}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -153,7 +143,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.parchment,
@@ -164,28 +154,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingTop: 48,
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingTop: spacing.screen,
+    paddingHorizontal: spacing.screen,
+    paddingBottom: spacing.screen,
   },
   header: {
-    marginBottom: 40,
+    marginBottom: spacing.screen,
     alignItems: 'center',
-  },
-  title: {
-    ...typography.screenTitle,
-    color: colors.ink,
-    marginBottom: 8,
   },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
   form: {
     width: '100%',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   label: {
     ...typography.caption,
@@ -196,8 +182,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 0,
-    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
     backgroundColor: colors.surfaceWarm,
   },
   inputContainerFocused: {
@@ -210,8 +198,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Overpass_400Regular',
     fontSize: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    minHeight: 48,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     color: colors.textPrimary,
   },
   errorText: {
@@ -222,10 +211,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: spacing.lg,
   },
   backLink: {
-    paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   linkText: {
     color: colors.accent,

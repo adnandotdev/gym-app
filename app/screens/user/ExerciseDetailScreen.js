@@ -7,8 +7,12 @@ import ExerciseDemonstrationViewer from '../../components/ExerciseDemonstrationV
 import MotionPressable from '../../components/MotionPressable';
 import Button from '../../components/Button';
 import ExerciseVariationSheet from './ExerciseVariationSheet';
-import { colors, typography, spacing, radius } from '../../theme/colors';
+import EquipmentGuideSheet from '../../components/EquipmentGuideSheet';
+import FormTipsCarousel from '../../components/FormTipsCarousel';
+import { typography, spacing, radius } from '../../theme/colors';
 import { AuthContext } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 import { exercises } from '../../data/exercises';
 import {
   buildLegacyExerciseFallback,
@@ -19,6 +23,8 @@ import {
 } from '../../data/exerciseVariations';
 
 export default function ExerciseDetailScreen({ route, navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const routeExercise = route.params.exercise;
   const { user } = useContext(AuthContext);
   const parentExercise = resolveExerciseFamily(routeExercise, exercises) || routeExercise;
@@ -31,6 +37,10 @@ export default function ExerciseDetailScreen({ route, navigation }) {
   const [selectedVariation, setSelectedVariation] = useState(initialVariation);
   const [draftVariation, setDraftVariation] = useState(initialVariation);
   const [variationSheetVisible, setVariationSheetVisible] = useState(false);
+  const [equipmentGuideVisible, setEquipmentGuideVisible] = useState(false);
+
+  // F03: Inherit guidance level from user preferences (defaulting to beginner)
+  const userGuidanceLevel = user?.preferences?.guidanceLevel || 'beginner';
 
   const selectedExercise = useMemo(
     () => buildVariationExercise(parentExercise, selectedVariation)
@@ -51,7 +61,7 @@ export default function ExerciseDetailScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <MotionPressable
           accessibilityRole="button"
@@ -88,13 +98,46 @@ export default function ExerciseDetailScreen({ route, navigation }) {
           familyId={selectedExercise.exerciseFamilyId || parentExercise.id}
           exerciseName={selectedExercise.name}
           equipment={selectedExercise.equipment}
+          compact
         />
 
+        {hasVariations && (
+          <MotionPressable
+            style={styles.variationSelector}
+            onPress={openVariationPicker}
+            accessibilityRole="button"
+            accessibilityLabel={`Change variation. Current selection: ${selectedExercise.name}`}
+            accessibilityHint="Opens a list of available variations"
+          >
+            <View style={styles.variationSelectorIcon}>
+              <Ionicons name="swap-horizontal" size={20} color={colors.accent} />
+            </View>
+            <View style={styles.variationSelectorCopy}>
+              <View style={styles.variationSelectorEyebrowRow}>
+                <Text style={styles.variationSelectorEyebrow}>Current variation</Text>
+                {selectedVariation?.isDefault && (
+                  <Text style={styles.variationSelectorRecommended}>Recommended</Text>
+                )}
+              </View>
+              <Text style={styles.variationSelectorTitle} numberOfLines={2}>{selectedExercise.name}</Text>
+              <Text style={styles.variationSelectorMeta}>{variations.length} options available</Text>
+            </View>
+            <View style={styles.variationSelectorChevron}>
+              <Ionicons name="chevron-forward" size={18} color={colors.textPrimary} />
+            </View>
+          </MotionPressable>
+        )}
+
         <View style={styles.statsRow}>
-          <View style={[styles.statBadge, styles.equipmentBadge]}>
+          <MotionPressable
+            style={[styles.statBadge, styles.equipmentBadge]}
+            onPress={() => setEquipmentGuideVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`View equipment guide for ${selectedExercise.equipment}`}
+          >
             <Ionicons name="fitness" size={16} color={colors.accent} />
             <Text style={[styles.statText, styles.equipmentText]}>{selectedExercise.equipment}</Text>
-          </View>
+          </MotionPressable>
           <View style={[styles.statBadge, styles.difficultyBadge]}>
             <Ionicons name="speedometer" size={16} color={colors.performance} />
             <Text style={[styles.statText, styles.difficultyText]}>{selectedExercise.difficulty}</Text>
@@ -102,17 +145,10 @@ export default function ExerciseDetailScreen({ route, navigation }) {
         </View>
 
         <View style={styles.section}>
-          <View style={styles.sectionHeadingRow}>
-            <View style={styles.sectionHeadingCopy}>
-              <Text style={styles.sectionEyebrow}>
-                {hasVariations ? 'Current variation' : 'Exercise'}
-              </Text>
-              <Text style={styles.sectionTitle}>{selectedExercise.name}</Text>
-            </View>
-            {selectedVariation?.isDefault && (
-              <Text style={styles.recommendedLabel}>Recommended</Text>
-            )}
-          </View>
+          <Text style={styles.sectionEyebrow}>{hasVariations ? 'Variation details' : 'Exercise details'}</Text>
+          <Text style={styles.sectionTitle}>
+            {hasVariations ? 'About this variation' : selectedExercise.name}
+          </Text>
 
           <View style={styles.variationCard}>
             <Text style={styles.variationSummary}>
@@ -140,20 +176,6 @@ export default function ExerciseDetailScreen({ route, navigation }) {
               </View>
             </View>
 
-            {hasVariations && (
-              <MotionPressable
-                style={styles.chooseVariationButton}
-                onPress={openVariationPicker}
-                accessibilityRole="button"
-                accessibilityLabel={`Choose Variation. Current selection: ${selectedExercise.name}`}
-              >
-                <View style={styles.chooseVariationCopy}>
-                  <Text style={styles.chooseVariationTitle}>Choose Variation</Text>
-                  <Text style={styles.chooseVariationMeta}>One selection controls this workout entry</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
-              </MotionPressable>
-            )}
           </View>
         </View>
 
@@ -176,6 +198,12 @@ export default function ExerciseDetailScreen({ route, navigation }) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Instructions</Text>
+
+          <FormTipsCarousel
+            exerciseName={selectedExercise.name}
+            guidanceLevel={userGuidanceLevel}
+          />
+
           <View style={styles.instructionsCard}>
             {selectedExercise.instructions.map((step, index) => (
               <View
@@ -194,17 +222,6 @@ export default function ExerciseDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {hasVariations && (
-          <MotionPressable
-            style={styles.addAnotherButton}
-            onPress={openVariationPicker}
-            accessibilityRole="button"
-            accessibilityLabel="Add Another Variation"
-          >
-            <Ionicons name="add" size={20} color={colors.accent} />
-            <Text style={styles.addAnotherText}>Add Another Variation</Text>
-          </MotionPressable>
-        )}
       </ScrollView>
 
       <View style={styles.bottomAction}>
@@ -213,6 +230,15 @@ export default function ExerciseDetailScreen({ route, navigation }) {
           onPress={() => navigation.navigate('AddToPlan', { exercise: selectedExercise })}
         />
       </View>
+
+      {equipmentGuideVisible && (
+        <EquipmentGuideSheet
+          visible={equipmentGuideVisible}
+          equipmentName={selectedExercise.equipment}
+          exerciseName={selectedExercise.name}
+          onClose={() => setEquipmentGuideVisible(false)}
+        />
+      )}
 
       {hasVariations && (
         <ExerciseVariationSheet
@@ -229,7 +255,7 @@ export default function ExerciseDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: { flex: 1, backgroundColor: colors.canvas },
   header: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.screen,
@@ -244,20 +270,71 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.cardTitle, color: colors.textPrimary, textAlign: 'center' },
   headerMeta: { ...typography.metaSmall, color: colors.textSecondary, marginTop: spacing.micro },
   content: { flex: 1 },
-  contentContainer: { paddingHorizontal: spacing.screen, paddingBottom: spacing.screen },
-  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginVertical: spacing.lg },
+  contentContainer: { paddingHorizontal: spacing.screen, paddingTop: spacing.md, paddingBottom: spacing.md },
+  variationSelector: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    borderRadius: radius.card,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceWarm,
+  },
+  variationSelectorIcon: {
+    width: 40,
+    height: 40,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.control,
+    borderCurve: 'continuous',
+    backgroundColor: colors.accentLight,
+  },
+  variationSelectorCopy: { flex: 1, minWidth: 0 },
+  variationSelectorEyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  variationSelectorEyebrow: {
+    ...typography.metaSmall,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  variationSelectorRecommended: { ...typography.metaSmall, color: colors.accent },
+  variationSelectorTitle: { ...typography.cardTitle, color: colors.textPrimary },
+  variationSelectorMeta: {
+    ...typography.metaSmall,
+    color: colors.textSecondary,
+    marginTop: spacing.micro,
+  },
+  variationSelectorChevron: {
+    width: 32,
+    height: 32,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.chip,
+    backgroundColor: colors.surface,
+  },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.lg },
   statBadge: {
-    minHeight: 36, flexDirection: 'row', paddingHorizontal: spacing.sm,
+    minHeight: 44, maxWidth: '100%', flexDirection: 'row', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
     borderRadius: radius.control, alignItems: 'center', gap: spacing.xs,
   },
   equipmentBadge: { backgroundColor: colors.accentLight },
   difficultyBadge: { backgroundColor: colors.performanceSoft },
-  statText: { ...typography.caption },
+  statText: { ...typography.caption, flexShrink: 1 },
   equipmentText: { color: colors.accent },
   difficultyText: { color: colors.performance },
-  section: { marginBottom: spacing.xl },
-  sectionHeadingRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, marginBottom: spacing.md },
-  sectionHeadingCopy: { flex: 1, minWidth: 0 },
+  section: { marginBottom: spacing.lg },
   sectionEyebrow: {
     ...typography.metaSmall, color: colors.textSecondary, textTransform: 'uppercase',
     letterSpacing: 0.8, marginBottom: spacing.micro,
@@ -269,10 +346,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.micro,
   },
-  recommendedLabel: { ...typography.metaSmall, color: colors.accent, paddingBottom: spacing.micro },
   variationCard: {
-    backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.lg,
-    borderWidth: 1, borderColor: colors.hairline,
+    backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md,
+    borderWidth: 1, borderColor: colors.hairline, marginTop: spacing.md,
   },
   variationSummary: { ...typography.body, color: colors.bodySecondary },
   setupCue: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
@@ -291,33 +367,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
   },
   secondaryMuscleText: { ...typography.metaSmall, color: colors.bodySecondary },
-  chooseVariationButton: {
-    minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    marginTop: spacing.lg, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.hairline,
-  },
-  chooseVariationCopy: { flex: 1, minWidth: 0 },
-  chooseVariationTitle: { ...typography.action, color: colors.textPrimary },
-  chooseVariationMeta: { ...typography.metaSmall, color: colors.textSecondary, marginTop: spacing.micro },
   instructionsCard: {
-    backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.lg,
+    backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md,
     borderWidth: 1, borderColor: colors.hairline, marginTop: spacing.md,
   },
-  instructionRow: { flexDirection: 'row', marginBottom: spacing.lg, alignItems: 'flex-start' },
+  instructionRow: { flexDirection: 'row', marginBottom: spacing.md, alignItems: 'flex-start' },
   lastInstructionRow: { marginBottom: 0 },
   stepNumber: {
-    width: 28, height: 28, borderRadius: radius.control, backgroundColor: colors.ink,
+    width: 28, height: 28, flexShrink: 0, borderRadius: radius.control, backgroundColor: colors.ink,
     justifyContent: 'center', alignItems: 'center', marginRight: spacing.md, marginTop: radius.subtle,
   },
   stepNumberText: { ...typography.action, color: colors.background },
   instructionText: { ...typography.body, flex: 1, color: colors.textSecondary },
-  addAnotherButton: {
-    minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.xs, marginBottom: spacing.lg,
-  },
-  addAnotherText: { ...typography.action, color: colors.accent },
   bottomAction: {
-    paddingHorizontal: spacing.screen, paddingTop: spacing.sm, paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.screen, paddingTop: spacing.sm, paddingBottom: spacing.sm,
     backgroundColor: colors.canvas, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border,
   },
 });

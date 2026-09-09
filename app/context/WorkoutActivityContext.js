@@ -6,6 +6,7 @@ const WorkoutActivityContext = createContext(null);
 const HISTORY_LIMIT = 50;
 
 const getStorageKey = (user) => `@workout_activity_${user?._id || user?.id || 'local'}`;
+const getDraftKey = (user) => `@workout_draft_${user?._id || user?.id || 'local'}`;
 
 const normalizeRecord = (record) => ({
   id: record.id,
@@ -14,6 +15,7 @@ const normalizeRecord = (record) => ({
   completedAt: record.completedAt || Date.now(),
   totalElapsedSeconds: record.totalElapsedSeconds || 0,
   completedCount: record.completedCount || 0,
+  partialCount: record.partialCount || 0,
   skippedCount: record.skippedCount || 0,
   totalCount: record.totalCount || 0,
   items: (record.items || []).map((item) => ({ ...item })),
@@ -25,6 +27,33 @@ export function WorkoutActivityProvider({ children }) {
   const historyRef = useRef([]);
   const [loading, setLoading] = useState(true);
   const storageKey = useMemo(() => getStorageKey(user), [user]);
+  const draftKey = useMemo(() => getDraftKey(user), [user]);
+
+  const saveDraft = useCallback(async (sessionState) => {
+    try {
+      await AsyncStorage.setItem(draftKey, JSON.stringify(sessionState));
+    } catch (e) {
+      console.warn('Could not save workout draft', e);
+    }
+  }, [draftKey]);
+
+  const loadDraft = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(draftKey);
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      console.warn('Could not load workout draft', e);
+      return null;
+    }
+  }, [draftKey]);
+
+  const clearDraft = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(draftKey);
+    } catch (e) {
+      console.warn('Could not clear workout draft', e);
+    }
+  }, [draftKey]);
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -64,7 +93,15 @@ export function WorkoutActivityProvider({ children }) {
   }, [storageKey]);
 
   return (
-    <WorkoutActivityContext.Provider value={{ history, loading, loadHistory, recordWorkout }}>
+    <WorkoutActivityContext.Provider value={{
+      history,
+      loading,
+      loadHistory,
+      recordWorkout,
+      saveDraft,
+      loadDraft,
+      clearDraft
+    }}>
       {children}
     </WorkoutActivityContext.Provider>
   );

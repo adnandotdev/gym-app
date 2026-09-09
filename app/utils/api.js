@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { resolveApiUrl } from './apiConfiguration';
 
 // Define backend API URL
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.109:5000/api';
+export const API_URL = resolveApiUrl(process.env.EXPO_PUBLIC_API_URL, __DEV__);
 
 /**
  * Pure Fetch Client mimicking Axios' API interface precisely
@@ -13,6 +14,9 @@ class FetchClient {
   }
 
   async request(endpoint, options = {}) {
+    if (!this.baseUrl) {
+      throw new Error('The service is not configured for this app version. Please contact support.');
+    }
     const { method = 'GET', body, headers = {} } = options;
 
     const requestHeaders = {

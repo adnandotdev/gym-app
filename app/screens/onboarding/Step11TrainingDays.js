@@ -1,12 +1,17 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { OnboardingContext } from '../../context/OnboardingContext';
 import OnboardingHeader from './OnboardingHeader';
 import Button from '../../components/Button';
+import { spacing } from '../../theme/colors';
+import { useAppTheme } from '../../context/ThemeContext';
+import useThemedStyles from '../../theme/useThemedStyles';
 
 const Step11TrainingDays = ({ navigation }) => {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { onboardingData, updateField } = useContext(OnboardingContext);
   
   const [selectedDays, setSelectedDays] = useState(onboardingData.trainingDays || []);
@@ -47,11 +52,10 @@ const Step11TrainingDays = ({ navigation }) => {
           <Text style={styles.title}>Which days of the week would you like to pick as training days?</Text>
         </View>
 
-        {/* 7 Day Grid */}
+        {/* One balanced row keeps every weekday aligned. */}
         <View style={styles.gridContainer}>
-          {/* Top Row: Sun, Mon, Tue */}
-          <View style={styles.row}>
-            {days.slice(0, 3).map((day) => {
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysRow}>
+            {days.map((day) => {
               const isSelected = selectedDays.includes(day.key);
               const isToday = day.index === todayIndex;
               return (
@@ -63,50 +67,19 @@ const Step11TrainingDays = ({ navigation }) => {
                   ]}
                   onPress={() => handleToggleDay(day.key)}
                   activeOpacity={0.8}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`${day.label}${isToday ? ', today' : ''}`}
+                  accessibilityState={{ checked: isSelected }}
                 >
-                  {isToday && (
-                    <View style={styles.todayBadge}>
-                      <Text style={styles.todayBadgeText}>TODAY</Text>
-                    </View>
-                  )}
+                  {isToday && <View style={styles.todayDot} />}
                   <Text style={[styles.dayLabel, isSelected && styles.dayLabelActive]}>{day.label}</Text>
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={16} color="#17140F" style={styles.checkIcon} />
+                    <Ionicons name="checkmark-circle" size={16} color={colors.ink} style={styles.checkIcon} />
                   )}
                 </TouchableOpacity>
               );
             })}
-          </View>
-
-          {/* Bottom Row: Wed, Thu, Fri, Sat */}
-          <View style={styles.row}>
-            {days.slice(3).map((day) => {
-              const isSelected = selectedDays.includes(day.key);
-              const isToday = day.index === todayIndex;
-              return (
-                <TouchableOpacity
-                  key={day.key}
-                  style={[
-                    styles.dayButton,
-                    styles.dayButtonFour,
-                    isSelected && styles.dayButtonActive,
-                  ]}
-                  onPress={() => handleToggleDay(day.key)}
-                  activeOpacity={0.8}
-                >
-                  {isToday && (
-                    <View style={styles.todayBadge}>
-                      <Text style={styles.todayBadgeText}>TODAY</Text>
-                    </View>
-                  )}
-                  <Text style={[styles.dayLabel, isSelected && styles.dayLabelActive]}>{day.label}</Text>
-                  {isSelected && (
-                    <Ionicons name="checkmark-circle" size={16} color="#17140F" style={styles.checkIcon} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          </ScrollView>
         </View>
 
         {/* Reminder Toggle Card */}
@@ -118,9 +91,10 @@ const Step11TrainingDays = ({ navigation }) => {
           <Switch
             value={reminder}
             onValueChange={setReminder}
-            trackColor={{ false: '#A79B88', true: '#2F4A3C' }}
-            thumbColor={reminder ? '#17140F' : '#F0E9DC'}
-            ios_backgroundColor="#A79B88"
+            trackColor={{ false: colors.muted, true: colors.primary }}
+            thumbColor={reminder ? colors.accentOnDark : colors.white}
+            ios_backgroundColor={colors.muted}
+            accessibilityLabel="Training reminder"
           />
         </View>
       </ScrollView>
@@ -138,44 +112,45 @@ const Step11TrainingDays = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFCF5',
+    backgroundColor: colors.canvas,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 100,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   header: {
-    marginBottom: 44,
+    marginBottom: spacing.screen,
   },
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     textAlign: 'center',
     lineHeight: 34,
   },
   gridContainer: {
     width: '100%',
-    marginBottom: 40,
+    marginBottom: spacing.screen,
   },
-  row: {
+  daysRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    width: '100%',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 1,
   },
   dayButton: {
-    width: '30%',
-    height: 72,
-    backgroundColor: '#F0E9DC',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#CFC4B3',
+    width: 48,
+    height: 58,
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -185,25 +160,22 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  dayButtonFour: {
-    width: '22%',
-  },
   dayButtonActive: {
-    backgroundColor: '#2F4A3C',
-    borderColor: '#2F4A3C',
-    shadowColor: '#2F4A3C',
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
   },
   dayLabel: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#82786A',
+    color: colors.textSecondary,
   },
   dayLabelActive: {
-    color: '#17140F',
+    color: colors.ink,
     fontWeight: '700',
   },
   checkIcon: {
@@ -211,30 +183,23 @@ const styles = StyleSheet.create({
     bottom: 6,
     right: 6,
   },
-  todayBadge: {
+  todayDot: {
     position: 'absolute',
-    top: -12,
-    backgroundColor: '#17140F',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    zIndex: 10,
-    borderWidth: 1,
-    borderColor: '#FFFCF5',
-  },
-  todayBadgeText: {
-    color: '#2F4A3C',
-    fontSize: 8,
-    fontWeight: '700',
+    top: 7,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
   },
   reminderCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F0E9DC',
+    backgroundColor: colors.surfaceWarm,
     borderRadius: 20,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: '#CFC4B3',
+    borderColor: colors.border,
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -248,29 +213,26 @@ const styles = StyleSheet.create({
   reminderTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#17140F',
+    color: colors.ink,
     marginBottom: 4,
   },
   reminderSubtitle: {
     fontSize: 13,
-    color: '#82786A',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFCF5',
-    paddingHorizontal: 28,
+    flexShrink: 0,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.screen,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2D8C8',
+    borderTopColor: colors.hairline,
     zIndex: 10,
   },
   continueButton: {
-    backgroundColor: '#17140F',
-    shadowColor: '#17140F',
+    backgroundColor: colors.primary,
+    shadowColor: colors.ink,
   },
 });
 
