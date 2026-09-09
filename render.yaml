@@ -2,7 +2,8 @@ services:
   - type: web
     name: liftsutra-api
     runtime: node
-    plan: starter
+    plan: free
+    region: singapore
     rootDir: backend
     buildCommand: npm ci --omit=dev
     startCommand: npm start
@@ -14,10 +15,8 @@ services:
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
-      - key: CORS_ORIGINS
-        sync: false
       - key: TRUST_PROXY
         value: "1"

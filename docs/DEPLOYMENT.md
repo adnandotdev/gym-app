@@ -2,9 +2,11 @@
 
 ## Production architecture
 
-The mobile app calls a public HTTPS API. The recommended first release is:
+The mobile app calls a public HTTPS API. The free testing and early-user setup is:
 
 `Expo/EAS app -> api.liftsutra.example/api -> Render web service -> MongoDB Atlas`
+
+The included Blueprint uses Render's `free` web-service plan. Free Render services sleep after 15 minutes without traffic and can take about a minute to wake up, so upgrade to an always-on plan before expecting production-grade responsiveness.
 
 Use a custom API domain when available. It allows the backend host to change later without shipping a new mobile build.
 
@@ -22,10 +24,10 @@ The old MongoDB credential and JWT secret were previously committed. Rotate both
 
 ## 3. Deploy the API to Render
 
-1. In Render, create a Blueprint from this repository. `render.yaml` selects `backend/` as the service root.
+1. In Render, create a Blueprint from this repository. `render.yaml` selects `backend/` as the service root and the free compute plan.
 2. Configure `MONGO_URI` with the rotated Atlas URI.
-3. Configure `JWT_SECRET` with a cryptographically random value of at least 32 characters.
-4. Set `CORS_ORIGINS` to comma-separated exact HTTPS origins for Expo web. Native requests without a browser origin remain allowed.
+3. Let the Blueprint generate and securely store `JWT_SECRET` automatically. Rotating it later logs every user out.
+4. If you publish Expo web, set `CORS_ORIGINS` to its comma-separated exact HTTPS origins. Leave it unset for a native-only release; Android and iOS requests without a browser origin remain allowed.
 5. Deploy and verify both endpoints:
    - `/health` returns 200 when the process is alive.
    - `/ready` returns 200 only when MongoDB is connected.

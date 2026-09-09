@@ -30,9 +30,6 @@ const isExactHttpsOrigin = (value) => {
 
 const validateSecurityEnvironment = (env = process.env) => {
   const origins = getAllowedOrigins(env);
-  if (isProduction(env) && origins.length === 0) {
-    throw new Error('Production requires CORS_ORIGINS to list allowed browser origins.');
-  }
   if (isProduction(env) && origins.some((origin) => !isExactHttpsOrigin(origin))) {
     throw new Error('CORS_ORIGINS must contain exact HTTPS browser origins without paths or wildcards.');
   }
