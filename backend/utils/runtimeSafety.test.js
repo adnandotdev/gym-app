@@ -9,6 +9,14 @@ test('production startup requires persistent storage and a strong configured sig
   assert.doesNotThrow(() => validateServerEnvironment({ NODE_ENV: 'development', MONGO_URI: 'mongodb://db' }));
 });
 
+test('production rejects placeholder secrets even when they are long enough', () => {
+  assert.throws(() => validateServerEnvironment({
+    NODE_ENV: 'production',
+    MONGO_URI: 'mongodb://db',
+    JWT_SECRET: 'replace-with-at-least-32-random-characters',
+  }), /random JWT_SECRET/);
+});
+
 test('production database outage blocks requests, reconnect resumes requests, development retains offline mode', () => {
   const previous = process.env.NODE_ENV;
   try {

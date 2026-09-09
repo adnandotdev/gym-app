@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "test": "node --test",
+    "check:release": "node scripts/checkReleaseBuild.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -17,11 +19,11 @@
     "@react-navigation/bottom-tabs": "^7.16.2",
     "@react-navigation/native": "^7.2.4",
     "@react-navigation/native-stack": "^7.15.1",
-    "axios": "^1.16.1",
     "expo": "^57.0.20",
     "expo-font": "~57.0.3",
     "expo-haptics": "~57.0.2",
     "expo-linear-gradient": "~57.0.1",
+    "expo-secure-store": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.3",
     "react": "19.2.3",
@@ -35,6 +37,10 @@
     "react-native-toast-message": "^2.3.3",
     "react-native-web": "^0.21.0",
     "react-native-worklets": "0.10.1"
+  },
+  "overrides": {
+    "decode-uri-component": "^0.5.0",
+    "uuid": "^11.1.1"
   },
   "private": true
 }

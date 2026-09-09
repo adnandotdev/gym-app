@@ -8,7 +8,7 @@ const GENDERS = ['male', 'female'];
 const VIEWS = ['front', 'back'];
 
 before(() => {
-  require.extensions['.png'] = (module, filename) => {
+  require.extensions['.jpg'] = (module, filename) => {
     module.exports = filename;
   };
 });
@@ -20,12 +20,19 @@ const getLibraryIds = () => {
 
 const loadResolver = () => require('./exerciseAnatomyImages');
 
-const readPngDimensions = (source) => {
-  const png = fs.readFileSync(source);
-  return {
-    width: png.readUInt32BE(16),
-    height: png.readUInt32BE(20),
-  };
+const readJpegDimensions = (source) => {
+  const jpeg = fs.readFileSync(source);
+  let offset = 2;
+  while (offset < jpeg.length) {
+    if (jpeg[offset] !== 0xff) throw new Error(`Invalid JPEG marker in ${source}`);
+    const marker = jpeg[offset + 1];
+    const length = jpeg.readUInt16BE(offset + 2);
+    if ([0xc0, 0xc1, 0xc2].includes(marker)) {
+      return { width: jpeg.readUInt16BE(offset + 7), height: jpeg.readUInt16BE(offset + 5) };
+    }
+    offset += length + 2;
+  }
+  throw new Error(`Missing JPEG dimensions in ${source}`);
 };
 
 describe('exercise anatomy asset coverage', () => {
@@ -57,7 +64,7 @@ describe('exercise anatomy asset coverage', () => {
     assert.deepEqual(Object.keys(EXERCISE_ANATOMY_IMAGES).sort(), libraryIds.sort());
   });
 
-  it('resolves four separate physical PNG files for every exercise', () => {
+  it('resolves four separate optimized JPEG files for every exercise', () => {
     const {
       EXERCISE_ANATOMY_IMAGES,
       NEUTRAL_ANATOMY_IMAGES,
@@ -78,17 +85,14 @@ describe('exercise anatomy asset coverage', () => {
             ROOT,
             'assets/images/exercises/anatomy',
             exerciseId,
-            `${gender}-${view}.png`
+            `${gender}-${view}.jpg`
           );
 
           assert.equal(source, expected);
           assert.equal(source, EXERCISE_ANATOMY_IMAGES[exerciseId][gender][view]);
           assert.equal(neutralPaths.has(source), false);
           assert.equal(fs.statSync(source).isFile(), true);
-          assert.deepEqual(
-            [...fs.readFileSync(source).subarray(0, 8)],
-            [137, 80, 78, 71, 13, 10, 26, 10]
-          );
+          assert.deepEqual([...fs.readFileSync(source).subarray(0, 2)], [255, 216]);
           allPaths.push(source);
         });
       });
@@ -114,7 +118,7 @@ describe('exercise anatomy asset coverage', () => {
     getLibraryIds().forEach((exerciseId) => {
       GENDERS.forEach((gender) => {
         VIEWS.forEach((view) => {
-          const dimensions = readPngDimensions(
+          const dimensions = readJpegDimensions(
             resolveExerciseAnatomyImage(exerciseId, gender, view)
           );
 

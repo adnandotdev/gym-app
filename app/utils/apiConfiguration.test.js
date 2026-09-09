@@ -12,4 +12,6 @@ test('release blocks missing, insecure, local, credential-bearing and malformed 
     assert.equal(resolveApiUrl(value, false), null, String(value));
   }
   assert.equal(resolveApiUrl('https://api.example.com/api/', false), 'https://api.example.com/api');
+  assert.equal(resolveApiUrl('https://api.example.com', false), null);
+  assert.equal(resolveApiUrl('https://api.example.com/v1', false), null);
 });

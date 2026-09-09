@@ -43,8 +43,8 @@ export const addExerciseToDay = async (day, exercise) => {
 
 export const removeExerciseFromDay = async (day, exerciseId) => {
   try {
-    const response = await api.delete('/workout-plan/remove-exercise', { 
-      data: { day, exerciseId } // axios/fetch config format for DELETE with body
+    const response = await api.delete('/workout-plan/remove-exercise', {
+      body: { day, exerciseId },
     });
     if (response.data && response.data.success) {
       return response.data.data;
@@ -58,7 +58,7 @@ export const removeExerciseFromDay = async (day, exerciseId) => {
 export const clearDay = async (day) => {
   try {
     const response = await api.delete('/workout-plan/clear-day', {
-      data: { day }
+      body: { day },
     });
     if (response.data && response.data.success) {
       return response.data.data;

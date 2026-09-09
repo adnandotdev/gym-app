@@ -148,7 +148,7 @@ export default function WorkoutPlanScreen({ navigation, route }) {
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => handleRemoveExercise(item.id)}
+          onPress={() => handleRemoveExercise(item.exerciseVariantId || item.id)}
           style={styles.deleteBtn}
           accessibilityRole="button"
           accessibilityLabel={`Remove ${item.name} from ${selectedDay}`}

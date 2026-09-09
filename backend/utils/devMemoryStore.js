@@ -117,7 +117,9 @@ const addWorkoutExercise = (userId, day, exercise) => {
 
 const removeWorkoutExercise = (userId, day, exerciseId) => {
   const currentPlan = getWorkoutPlan(userId);
-  const nextExercises = (currentPlan[day] || []).filter((item) => item.id !== exerciseId);
+  const nextExercises = (currentPlan[day] || []).filter(
+    (item) => getExerciseIdentity(item) !== exerciseId
+  );
   const nextPlan = { ...currentPlan, [day]: nextExercises };
   workoutPlansByUserId.set(userId, nextPlan);
   return nextExercises;

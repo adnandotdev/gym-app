@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const WorkoutPlan = require('../models/WorkoutPlan');
 const { protect } = require('../middleware/authMiddleware');
 const devMemoryStore = require('../utils/devMemoryStore');
+const { validateExercise, validateExercises, validateWorkoutDay } = require('../utils/validation');
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -58,22 +59,23 @@ router.put('/day', protect, async (req, res) => {
   try {
     const { day, exercises } = req.body;
 
-    if (!DAYS.includes(day)) {
-      return res.status(400).json({ success: false, message: 'Invalid day specified' });
-    }
+    const dayPayload = validateWorkoutDay(day, DAYS);
+    if (!dayPayload.ok) return res.status(400).json({ success: false, message: dayPayload.message });
+    const exercisesPayload = validateExercises(exercises || []);
+    if (!exercisesPayload.ok) return res.status(400).json({ success: false, message: exercisesPayload.message });
 
     if (!isDbConnected()) {
-      const week = devMemoryStore.setWorkoutPlanDay(getUserId(req), day, exercises);
+      const week = devMemoryStore.setWorkoutPlanDay(getUserId(req), dayPayload.value, exercisesPayload.value);
       return res.status(200).json({ success: true, data: { week }, mode: 'memory' });
     }
 
-    const updatePath = `week.${day}`;
+    const updatePath = `week.${dayPayload.value}`;
     
     // Atomic update to prevent VersionError during concurrent requests
     const plan = await WorkoutPlan.findOneAndUpdate(
       { userId: req.user._id },
       { 
-        $set: { [updatePath]: exercises || [] },
+        $set: { [updatePath]: exercisesPayload.value },
         $setOnInsert: { createdAt: new Date() }
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
@@ -93,15 +95,13 @@ router.post('/add-exercise', protect, async (req, res) => {
   try {
     const { day, exercise } = req.body;
 
-    if (!DAYS.includes(day)) {
-      return res.status(400).json({ success: false, message: 'Invalid day specified' });
-    }
-    if (!exercise || !exercise.id) {
-      return res.status(400).json({ success: false, message: 'Invalid exercise payload' });
-    }
+    const dayPayload = validateWorkoutDay(day, DAYS);
+    if (!dayPayload.ok) return res.status(400).json({ success: false, message: dayPayload.message });
+    const exercisePayload = validateExercise(exercise);
+    if (!exercisePayload.ok) return res.status(400).json({ success: false, message: exercisePayload.message });
 
     if (!isDbConnected()) {
-      const result = devMemoryStore.addWorkoutExercise(getUserId(req), day, exercise);
+      const result = devMemoryStore.addWorkoutExercise(getUserId(req), dayPayload.value, exercisePayload.value);
       if (result.duplicate) {
         return res.status(400).json({ success: false, message: 'Exercise already in plan for this day' });
       }
@@ -119,17 +119,17 @@ router.post('/add-exercise', protect, async (req, res) => {
     }
 
     // Check for duplicate exercise in that day
-    const exists = plan.week[day].some(
-      (existingExercise) => isSamePlannedExercise(existingExercise, exercise)
+    const exists = plan.week[dayPayload.value].some(
+      (existingExercise) => isSamePlannedExercise(existingExercise, exercisePayload.value)
     );
     if (exists) {
       return res.status(400).json({ success: false, message: 'Exercise already in plan for this day' });
     }
 
-    plan.week[day].push(exercise);
+    plan.week[dayPayload.value] = [...plan.week[dayPayload.value], exercisePayload.value];
     await plan.save();
 
-    res.status(200).json({ success: true, data: plan.week[day] });
+    res.status(200).json({ success: true, data: plan.week[dayPayload.value] });
   } catch (error) {
     console.error('Add Exercise Error:', error);
     res.status(500).json({ success: false, message: 'Failed to add exercise to plan' });
@@ -142,16 +142,16 @@ router.post('/add-exercise', protect, async (req, res) => {
 router.delete('/remove-exercise', protect, async (req, res) => {
   try {
     const { day, exerciseId } = req.body;
+    const normalizedExerciseId = typeof exerciseId === 'string' ? exerciseId.trim() : '';
 
-    if (!DAYS.includes(day)) {
-      return res.status(400).json({ success: false, message: 'Invalid day specified' });
-    }
-    if (!exerciseId) {
+    const dayPayload = validateWorkoutDay(day, DAYS);
+    if (!dayPayload.ok) return res.status(400).json({ success: false, message: dayPayload.message });
+    if (normalizedExerciseId.length === 0) {
       return res.status(400).json({ success: false, message: 'No exerciseId provided' });
     }
 
     if (!isDbConnected()) {
-      const exercises = devMemoryStore.removeWorkoutExercise(getUserId(req), day, exerciseId);
+      const exercises = devMemoryStore.removeWorkoutExercise(getUserId(req), dayPayload.value, normalizedExerciseId);
       return res.status(200).json({ success: true, data: exercises, mode: 'memory' });
     }
 
@@ -162,10 +162,12 @@ router.delete('/remove-exercise', protect, async (req, res) => {
     }
 
     // Filter out the specific exercise
-    plan.week[day] = plan.week[day].filter(ex => ex.id !== exerciseId);
+    plan.week[dayPayload.value] = plan.week[dayPayload.value].filter(
+      (ex) => getExerciseIdentity(ex) !== normalizedExerciseId
+    );
     await plan.save();
 
-    res.status(200).json({ success: true, data: plan.week[day] });
+    res.status(200).json({ success: true, data: plan.week[dayPayload.value] });
   } catch (error) {
     console.error('Remove Exercise Error:', error);
     res.status(500).json({ success: false, message: 'Failed to remove exercise from plan' });
@@ -179,19 +181,18 @@ router.delete('/clear-day', protect, async (req, res) => {
   try {
     const { day } = req.body;
 
-    if (!DAYS.includes(day)) {
-      return res.status(400).json({ success: false, message: 'Invalid day specified' });
-    }
+    const dayPayload = validateWorkoutDay(day, DAYS);
+    if (!dayPayload.ok) return res.status(400).json({ success: false, message: dayPayload.message });
 
     if (!isDbConnected()) {
-      devMemoryStore.setWorkoutPlanDay(getUserId(req), day, []);
+      devMemoryStore.setWorkoutPlanDay(getUserId(req), dayPayload.value, []);
       return res.status(200).json({ success: true, data: [], mode: 'memory' });
     }
 
     let plan = await WorkoutPlan.findOne({ userId: req.user._id });
     
     if (plan) {
-      plan.week[day] = [];
+      plan.week[dayPayload.value] = [];
       await plan.save();
     }
 

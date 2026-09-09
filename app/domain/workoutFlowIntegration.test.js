@@ -76,3 +76,15 @@ test('workout activity clears stale local history before loading another user bu
   assert.match(contextSource, /historyRef\.current = \[\]/);
   assert.match(contextSource, /setHistory\(\[\]\)/);
 });
+
+test('workout plan removes saved variations by planned exercise identity', () => {
+  const contextSource = read('app/context/WorkoutPlanContext.js');
+  const planSource = read('app/screens/user/WorkoutPlanScreen.js');
+  const backendSource = read('backend/routes/workoutPlan.js');
+  const memoryStoreSource = read('backend/utils/devMemoryStore.js');
+
+  assert.match(planSource, /handleRemoveExercise\(item\.exerciseVariantId \|\| item\.id\)/);
+  assert.match(contextSource, /getWorkoutExerciseIdentity\(ex\) !== exerciseId/);
+  assert.match(backendSource, /getExerciseIdentity\(ex\) !== normalizedExerciseId/);
+  assert.match(memoryStoreSource, /getExerciseIdentity\(item\) !== exerciseId/);
+});

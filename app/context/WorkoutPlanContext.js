@@ -112,7 +112,7 @@ export const WorkoutPlanProvider = ({ children }) => {
     const previousPlan = { ...plan };
     setPlan(prev => ({
       ...prev,
-      [day]: (prev[day] || []).filter(ex => ex.id !== exerciseId)
+      [day]: (prev[day] || []).filter(ex => getWorkoutExerciseIdentity(ex) !== exerciseId)
     }));
 
     try {

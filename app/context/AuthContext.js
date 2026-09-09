@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../utils/api';
+import { authStorage } from '../utils/authStorage';
 
 // Create AuthContext
 export const AuthContext = createContext();
@@ -10,17 +10,17 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Check AsyncStorage for token and user on app load
+  // Check protected storage for token and cached user on app load
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('userToken');
-        const storedUser = await AsyncStorage.getItem('userObject');
+        const storedToken = await authStorage.getToken();
+        const storedUser = await authStorage.getUser();
 
         if (storedToken) {
           setToken(storedToken);
           if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            setUser(storedUser);
           }
 
           // Verify token validity by calling /auth/me
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
             if (response.data && response.data.success) {
               const freshUser = response.data.user;
               setUser(freshUser);
-              await AsyncStorage.setItem('userObject', JSON.stringify(freshUser));
+              await authStorage.setUser(freshUser);
             } else {
               // Token is invalid, clean up
               await logout();
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (e) {
-        console.error('Failed to load login state from AsyncStorage', e);
+        console.error('Failed to load login state from storage', e);
       } finally {
         setIsLoading(false);
       }
@@ -62,8 +62,13 @@ export const AuthProvider = ({ children }) => {
         const { token: userToken, user: userData } = response.data;
 
         // Persist token and user in storage
-        await AsyncStorage.setItem('userToken', userToken);
-        await AsyncStorage.setItem('userObject', JSON.stringify(userData));
+        try {
+          await authStorage.setToken(userToken);
+          await authStorage.setUser(userData);
+        } catch (storageError) {
+          await authStorage.removeToken().catch(() => {});
+          throw storageError;
+        }
 
         // Update state
         setToken(userToken);
@@ -103,15 +108,15 @@ export const AuthProvider = ({ children }) => {
 
   // Logout handler
   const logout = async () => {
+    setToken(null);
+    setUser(null);
     try {
       setIsLoading(true);
       // Remove authentication details from storage
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userObject');
-
-      // Reset state
-      setToken(null);
-      setUser(null);
+      await Promise.all([
+        authStorage.removeToken(),
+        authStorage.removeUser(),
+      ]);
     } catch (error) {
       console.error('Error during logout', error);
     } finally {
@@ -123,7 +128,7 @@ export const AuthProvider = ({ children }) => {
   const updateUser = async (updatedUser) => {
     try {
       setUser(updatedUser);
-      await AsyncStorage.setItem('userObject', JSON.stringify(updatedUser));
+      await authStorage.setUser(updatedUser);
     } catch (e) {
       console.error('Failed to update user context', e);
     }

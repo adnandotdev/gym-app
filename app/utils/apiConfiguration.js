@@ -10,7 +10,8 @@ export function resolveApiUrl(configuredUrl, development) {
     const privateHost = !hostname.includes('.') || hostname.endsWith('.localhost') ||
       hostname.endsWith('.local') || hostname.endsWith('.internal') ||
       /^[\d.]+$/.test(hostname) || hostname.includes(':') || hostname.includes('[');
-    if (url.protocol !== 'https:' || privateHost || url.username || url.password || url.search || url.hash) return null;
+    const pathname = url.pathname.replace(/\/+$/, '');
+    if (url.protocol !== 'https:' || privateHost || url.username || url.password || url.search || url.hash || pathname !== '/api') return null;
     return value.replace(/\/+$/, '');
   } catch {
     return null;

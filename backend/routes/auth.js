@@ -5,31 +5,46 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 const devMemoryStore = require('../utils/devMemoryStore');
+const { validateAuthPayload, validateProfileUpdates } = require('../utils/validation');
+const { getJwtSignOptions } = require('../config/jwt');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
 // Helper function to generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d', // Token expires in 30 days
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET, getJwtSignOptions(process.env));
 };
+
+const ONBOARDING_FIELDS = [
+  'fitnessGoal',
+  'gender',
+  'fitnessLevel',
+  'age',
+  'height',
+  'heightUnit',
+  'currentWeight',
+  'targetWeight',
+  'weightUnit',
+  'bmi',
+  'currentBodyShape',
+  'desiredBodyShape',
+  'focusAreas',
+  'trainingDays',
+  'trainingReminder',
+  'equipment',
+  'injuries',
+];
+
+const PROFILE_FIELDS = ['name', ...ONBOARDING_FIELDS];
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    // 1. Validate fields
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Please enter all fields (name, email, password)' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
-    }
+    const payload = validateAuthPayload(req.body, true);
+    if (!payload.ok) return res.status(400).json({ success: false, message: payload.message });
+    const { name, email, password } = payload.value;
 
     if (!isDbConnected()) {
       const existingUser = devMemoryStore.findUserByEmail(email);
@@ -43,7 +58,7 @@ router.post('/register', async (req, res) => {
     }
 
     // 2. Check if user already exists
-    const userExists = await User.findOne({ email: email.toLowerCase() });
+    const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
@@ -51,7 +66,7 @@ router.post('/register', async (req, res) => {
     // 3. Create user (role defaults to "user" in schema)
     const user = await User.create({
       name,
-      email: email.toLowerCase(),
+      email,
       password,
     });
 
@@ -78,12 +93,9 @@ router.post('/register', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    // 1. Validate fields
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Please enter both email and password' });
-    }
+    const payload = validateAuthPayload(req.body, false);
+    if (!payload.ok) return res.status(400).json({ success: false, message: payload.message });
+    const { email, password } = payload.value;
 
     if (!isDbConnected()) {
       const user = await devMemoryStore.validateUser({ email, password });
@@ -96,7 +108,7 @@ router.post('/login', async (req, res) => {
     }
 
     // 2. Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
@@ -147,31 +159,11 @@ router.get('/me', protect, async (req, res) => {
 router.put('/onboarding', protect, async (req, res) => {
   try {
     if (!isDbConnected()) {
-      const updates = {};
-      [
-        'fitnessGoal',
-        'gender',
-        'fitnessLevel',
-        'age',
-        'height',
-        'heightUnit',
-        'currentWeight',
-        'targetWeight',
-        'weightUnit',
-        'bmi',
-        'currentBodyShape',
-        'desiredBodyShape',
-        'focusAreas',
-        'trainingDays',
-        'trainingReminder',
-        'equipment',
-        'injuries',
-      ].forEach((field) => {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
-      });
+      const payload = validateProfileUpdates(req.body, ONBOARDING_FIELDS);
+      if (!payload.ok) return res.status(400).json({ success: false, message: payload.message });
 
       const updatedUser = devMemoryStore.updateUser(req.user._id || req.user.id, {
-        ...updates,
+        ...payload.value,
         onboardingComplete: true,
       });
 
@@ -188,33 +180,10 @@ router.put('/onboarding', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // List of onboarding fields
-    const onboardingFields = [
-      'fitnessGoal',
-      'gender',
-      'fitnessLevel',
-      'age',
-      'height',
-      'heightUnit',
-      'currentWeight',
-      'targetWeight',
-      'weightUnit',
-      'bmi',
-      'currentBodyShape',
-      'desiredBodyShape',
-      'focusAreas',
-      'trainingDays',
-      'trainingReminder',
-      'equipment',
-      'injuries'
-    ];
+    const payload = validateProfileUpdates(req.body, ONBOARDING_FIELDS);
+    if (!payload.ok) return res.status(400).json({ success: false, message: payload.message });
 
-    // Map body fields to user object
-    onboardingFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        user[field] = req.body[field];
-      }
-    });
+    user.set(payload.value);
 
     user.onboardingComplete = true;
 
@@ -261,31 +230,10 @@ router.put('/onboarding', protect, async (req, res) => {
 router.put('/profile', protect, async (req, res) => {
   try {
     if (!isDbConnected()) {
-      const updates = {};
-      [
-        'name',
-        'fitnessGoal',
-        'gender',
-        'fitnessLevel',
-        'age',
-        'height',
-        'heightUnit',
-        'currentWeight',
-        'targetWeight',
-        'weightUnit',
-        'bmi',
-        'currentBodyShape',
-        'desiredBodyShape',
-        'focusAreas',
-        'trainingDays',
-        'trainingReminder',
-        'equipment',
-        'injuries',
-      ].forEach((field) => {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
-      });
+      const payload = validateProfileUpdates(req.body, PROFILE_FIELDS);
+      if (!payload.ok) return res.status(400).json({ success: false, message: payload.message });
 
-      const updatedUser = devMemoryStore.updateUser(req.user._id || req.user.id, updates);
+      const updatedUser = devMemoryStore.updateUser(req.user._id || req.user.id, payload.value);
 
       if (!updatedUser) {
         return res.status(404).json({ success: false, message: 'User not found' });
@@ -300,34 +248,10 @@ router.put('/profile', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // List of updateable fields
-    const allowedFields = [
-      'name',
-      'fitnessGoal',
-      'gender',
-      'fitnessLevel',
-      'age',
-      'height',
-      'heightUnit',
-      'currentWeight',
-      'targetWeight',
-      'weightUnit',
-      'bmi',
-      'currentBodyShape',
-      'desiredBodyShape',
-      'focusAreas',
-      'trainingDays',
-      'trainingReminder',
-      'equipment',
-      'injuries'
-    ];
+    const payload = validateProfileUpdates(req.body, PROFILE_FIELDS);
+    if (!payload.ok) return res.status(400).json({ success: false, message: payload.message });
 
-    // Map body fields to user object
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        user[field] = req.body[field];
-      }
-    });
+    user.set(payload.value);
 
     // Save changes
     const updatedUser = await user.save();

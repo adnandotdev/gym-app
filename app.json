@@ -5,13 +5,19 @@
     "version": "1.0.0",
     "sdkVersion": "57.0.0",
     "description": "Your personal gym companion — visualize muscles, plan workouts, track progress.",
+    "scheme": "liftsutra",
     "orientation": "portrait",
     "icon": "./assets/branding/liftsutra-icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.adnandotdev.liftsutra",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.adnandotdev.liftsutra",
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/liftsutra-adaptive.png",
         "backgroundColor": "#FFFFFF"
@@ -24,7 +30,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-secure-store"
     ]
   }
 }

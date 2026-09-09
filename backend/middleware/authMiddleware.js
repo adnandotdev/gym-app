@@ -2,22 +2,26 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const devMemoryStore = require('../utils/devMemoryStore');
+const { JWT_OPTIONS } = require('../config/jwt');
 
 // Middleware to protect routes and verify JWT tokens
 const protect = async (req, res, next) => {
   let token;
 
   // Check if token is present in authorization headers as Bearer token
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  const authorization = req.headers.authorization;
+  const match = typeof authorization === 'string' && authorization.match(/^Bearer ([^\s]+)$/);
+  if (match) {
     try {
       // Get token from header (split "Bearer <token>")
-      token = req.headers.authorization.split(' ')[1];
+      token = match[1];
 
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+        algorithms: [JWT_OPTIONS.algorithm],
+        issuer: JWT_OPTIONS.issuer,
+        audience: JWT_OPTIONS.audience,
+      });
 
       // Get user from database (excluding password) and attach to req.user.
       req.user = mongoose.connection.readyState === 1
@@ -30,7 +34,6 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error('JWT Verification Error:', error);
       return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
     }
   }

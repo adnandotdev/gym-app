@@ -1,80 +1,52 @@
-const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 require('dotenv').config();
-const { isProduction, validateServerEnvironment, requireProductionDatabase } = require('./utils/runtimeSafety');
+const { createApp } = require('./app');
+const { isProduction, validateServerEnvironment } = require('./utils/runtimeSafety');
+const { validateSecurityEnvironment } = require('./config/security');
 
-// Initialize express app
-const app = express();
+const startServer = async (env = process.env) => {
+  validateServerEnvironment(env);
+  validateSecurityEnvironment(env);
 
-// Load environment variables
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
-try {
-  validateServerEnvironment(process.env);
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
-}
+  const port = Number.parseInt(env.PORT, 10) || 5000;
+  const host = env.HOST || '0.0.0.0';
+  let connected = false;
 
-// Middleware
-// 1. Enable CORS for cross-origin requests from the React Native app
-app.use(cors());
-
-// 2. Parse incoming JSON requests
-app.use(express.json());
-
-// Import routes
-const authRoutes = require('./routes/auth');
-const workoutPlanRoutes = require('./routes/workoutPlan');
-
-// Mount routes
-// All auth endpoints will be prefixed with /api/auth
-app.use('/api', requireProductionDatabase(mongoose.connection));
-app.use('/api/auth', authRoutes);
-app.use('/api/workout-plan', workoutPlanRoutes);
-
-// Simple health check endpoint
-app.get('/health', (req, res) => {
-  if (isProduction() && mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ status: 'unavailable' });
+  try {
+    await mongoose.connect(env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10_000,
+      connectTimeoutMS: 10_000,
+    });
+    connected = true;
+    console.log('MongoDB connection established.');
+  } catch {
+    if (isProduction(env)) throw new Error('Database connection failed; production server was not started.');
+    console.warn('MongoDB unavailable; development server is using offline fallback mode.');
   }
-  res.status(200).json({ status: 'OK', message: 'LiftSutra backend is running.' });
-});
 
-// Connect to MongoDB Database
-if (!MONGO_URI) {
-  console.error('CRITICAL: MONGO_URI environment variable is missing from backend/.env');
-  process.exit(1);
+  const app = createApp({ env, connection: mongoose.connection });
+  const server = app.listen(port, host, () => {
+    console.log(`LiftSutra backend listening on ${host}:${port}${connected ? '' : ' (offline development mode)'}.`);
+  });
+
+  const shutdown = (signal) => {
+    console.log(`${signal} received; shutting down.`);
+    server.close(async () => {
+      if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
+  return server;
+};
+
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
 }
 
-console.log('Connecting to MongoDB...');
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('Successfully connected to MongoDB.');
-    // Start Express server only after database connection is established
-    app.listen(PORT, () => {
-      console.log(`LiftSutra Backend running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    if (isProduction()) {
-      console.error('Database connection failed. Production server will not start without persistent storage.');
-      process.exit(1);
-    }
-    console.error('Database connection error:', err.message);
-    console.log('Server starting offline (without MongoDB connection)...');
-    
-    // Start the server anyway to allow checking connections/routes locally
-    const server = app.listen(PORT, () => {
-      console.log(`LiftSutra Backend running on port ${PORT} (Offline mode)`);
-    });
-    server.on('error', (e) => {
-      if (e.code === 'EADDRINUSE') {
-        console.log(`Port ${PORT} is already in use by another instance. Server is already running.`);
-      } else {
-        console.error('Server error:', e);
-      }
-    });
-  });
+module.exports = { startServer };
